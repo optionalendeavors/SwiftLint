@@ -195,6 +195,8 @@ extension Configuration {
                 return .success([SwiftLintFile(contents: stdinString)])
             }
             return .failure(.usageError(description: "stdin isn't a UTF8-encoded string"))
+        } else if !visitor.content.isEmpty {
+            return .success([SwiftLintFile(contents: visitor.content)])
         } else if visitor.useScriptInputFiles {
             return scriptInputFiles()
                 .map { files in

@@ -12,6 +12,7 @@ struct LintCommand: CommandProtocol {
 struct LintOptions: OptionsProtocol {
     let paths: [String]
     let useSTDIN: Bool
+    let content: String
     let configurationFile: String
     let strict: Bool
     let lenient: Bool
@@ -25,17 +26,17 @@ struct LintOptions: OptionsProtocol {
     let enableAllRules: Bool
 
     // swiftlint:disable line_length
-    static func create(_ path: String) -> (_ useSTDIN: Bool) -> (_ configurationFile: String) -> (_ strict: Bool) -> (_ lenient: Bool) -> (_ forceExclude: Bool) -> (_ useScriptInputFiles: Bool) -> (_ benchmark: Bool) -> (_ reporter: String) -> (_ quiet: Bool) -> (_ cachePath: String) -> (_ ignoreCache: Bool) -> (_ enableAllRules: Bool) -> (_ paths: [String]) -> LintOptions {
-        return { useSTDIN in { configurationFile in { strict in { lenient in { forceExclude in { useScriptInputFiles in { benchmark in { reporter in { quiet in { cachePath in { ignoreCache in { enableAllRules in { paths in
+    static func create(_ path: String) -> (_ useSTDIN: Bool) -> (_ content: String) -> (_ configurationFile: String) -> (_ strict: Bool) -> (_ lenient: Bool) -> (_ forceExclude: Bool) -> (_ useScriptInputFiles: Bool) -> (_ benchmark: Bool) -> (_ reporter: String) -> (_ quiet: Bool) -> (_ cachePath: String) -> (_ ignoreCache: Bool) -> (_ enableAllRules: Bool) -> (_ paths: [String]) -> LintOptions {
+        return { useSTDIN in { content in { configurationFile in { strict in { lenient in { forceExclude in { useScriptInputFiles in { benchmark in { reporter in { quiet in { cachePath in { ignoreCache in { enableAllRules in { paths in
             let allPaths: [String]
             if !path.isEmpty {
                 allPaths = [path]
             } else {
                 allPaths = paths
             }
-            return self.init(paths: allPaths, useSTDIN: useSTDIN, configurationFile: configurationFile, strict: strict, lenient: lenient, forceExclude: forceExclude, useScriptInputFiles: useScriptInputFiles, benchmark: benchmark, reporter: reporter, quiet: quiet, cachePath: cachePath, ignoreCache: ignoreCache, enableAllRules: enableAllRules)
+            return self.init(paths: allPaths, useSTDIN: useSTDIN, content: content, configurationFile: configurationFile, strict: strict, lenient: lenient, forceExclude: forceExclude, useScriptInputFiles: useScriptInputFiles, benchmark: benchmark, reporter: reporter, quiet: quiet, cachePath: cachePath, ignoreCache: ignoreCache, enableAllRules: enableAllRules)
             // swiftlint:enable line_length
-        }}}}}}}}}}}}}
+            }}}}}}}}}}}}}}
     }
 
     static func evaluate(_ mode: CommandMode) -> Result<LintOptions, CommandantError<CommandantError<()>>> {
@@ -43,6 +44,7 @@ struct LintOptions: OptionsProtocol {
             <*> mode <| pathOption(action: "lint")
             <*> mode <| Option(key: "use-stdin", defaultValue: false,
                                usage: "lint standard input")
+            <*> mode <| Option(key: "content", defaultValue: "", usage: "text to lint")
             <*> mode <| configOption
             <*> mode <| Option(key: "strict", defaultValue: false,
                                usage: "fail on warnings")

@@ -129,6 +129,7 @@ struct LintOrAnalyzeOptions {
     let mode: LintOrAnalyzeMode
     let paths: [String]
     let useSTDIN: Bool
+    let content: String
     let configurationFile: String
     let strict: Bool
     let lenient: Bool
@@ -148,6 +149,7 @@ struct LintOrAnalyzeOptions {
         mode = .lint
         paths = options.paths
         useSTDIN = options.useSTDIN
+        content = options.content
         configurationFile = options.configurationFile
         strict = options.strict
         lenient = options.lenient
@@ -168,6 +170,7 @@ struct LintOrAnalyzeOptions {
         mode = .analyze
         paths = options.paths
         useSTDIN = false
+        content = ""
         configurationFile = options.configurationFile
         strict = options.strict
         lenient = options.lenient

@@ -5,6 +5,8 @@ struct AutoCorrectCommand: CommandProtocol {
     let verb = "autocorrect"
     let function = "Automatically correct warnings and errors"
 
+    var correctedContentHandler: ((_: String) -> Void)?
+
     func run(_ options: AutoCorrectOptions) -> Result<(), CommandantError<()>> {
         let configuration = Configuration(options: options)
         let storage = RuleStorage()
@@ -16,6 +18,9 @@ struct AutoCorrectCommand: CommandProtocol {
                 }
                 queuedPrintError("Done correcting \(files.count) file\(pluralSuffix(files))!")
             }
+            if let handler = correctedContentHandler, let file = files.first {
+                handler(file.contents)
+            }
             return .success(())
         }
     }
@@ -23,6 +28,8 @@ struct AutoCorrectCommand: CommandProtocol {
 
 struct AutoCorrectOptions: OptionsProtocol {
     let paths: [String]
+    let content: String
+    var correctedContent: String?
     let configurationFile: String
     let useScriptInputFiles: Bool
     let quiet: Bool
@@ -32,22 +39,23 @@ struct AutoCorrectOptions: OptionsProtocol {
     let ignoreCache: Bool
 
     // swiftlint:disable line_length
-    static func create(_ path: String) -> (_ configurationFile: String) -> (_ useScriptInputFiles: Bool) -> (_ quiet: Bool) -> (_ forceExclude: Bool) -> (_ format: Bool) -> (_ cachePath: String) -> (_ ignoreCache: Bool) -> (_ paths: [String]) -> AutoCorrectOptions {
-        return { configurationFile in { useScriptInputFiles in { quiet in { forceExclude in { format in { cachePath in { ignoreCache in { paths in
+    static func create(_ path: String) -> (_ content: String) -> (_ configurationFile: String) -> (_ useScriptInputFiles: Bool) -> (_ quiet: Bool) -> (_ forceExclude: Bool) -> (_ format: Bool) -> (_ cachePath: String) -> (_ ignoreCache: Bool) -> (_ paths: [String]) -> AutoCorrectOptions {
+        return { content in { configurationFile in { useScriptInputFiles in { quiet in { forceExclude in { format in { cachePath in { ignoreCache in { paths in
             let allPaths: [String]
             if !path.isEmpty {
                 allPaths = [path]
             } else {
                 allPaths = paths
             }
-            return self.init(paths: allPaths, configurationFile: configurationFile, useScriptInputFiles: useScriptInputFiles, quiet: quiet, forceExclude: forceExclude, format: format, cachePath: cachePath, ignoreCache: ignoreCache)
+            return self.init(paths: allPaths, content: content, configurationFile: configurationFile, useScriptInputFiles: useScriptInputFiles, quiet: quiet, forceExclude: forceExclude, format: format, cachePath: cachePath, ignoreCache: ignoreCache)
             // swiftlint:enable line_length
-        }}}}}}}}
+            }}}}}}}}}
     }
 
     static func evaluate(_ mode: CommandMode) -> Result<AutoCorrectOptions, CommandantError<CommandantError<()>>> {
         return create
             <*> mode <| pathOption(action: "correct")
+            <*> mode <| Option(key: "content", defaultValue: "", usage: "Text to be autocorrected")
             <*> mode <| configOption
             <*> mode <| useScriptInputFilesOption
             <*> mode <| quietOption(action: "correcting")
@@ -65,7 +73,7 @@ struct AutoCorrectOptions: OptionsProtocol {
 
     fileprivate func visitor(with configuration: Configuration, storage: RuleStorage) -> LintableFilesVisitor {
         let cache = ignoreCache ? nil : LinterCache(configuration: configuration)
-        return LintableFilesVisitor(paths: paths, action: "Correcting", useSTDIN: false, quiet: quiet,
+        return LintableFilesVisitor(paths: paths, action: "Correcting", useSTDIN: false, content: content, quiet: quiet,
                                     useScriptInputFiles: useScriptInputFiles, forceExclude: forceExclude, cache: cache,
                                     parallel: true) { linter in
             if self.format {

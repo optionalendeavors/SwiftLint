@@ -32,6 +32,7 @@ struct LintableFilesVisitor {
     let paths: [String]
     let action: String
     let useSTDIN: Bool
+    let content: String
     let quiet: Bool
     let useScriptInputFiles: Bool
     let forceExclude: Bool
@@ -40,11 +41,12 @@ struct LintableFilesVisitor {
     let mode: LintOrAnalyzeModeWithCompilerArguments
     let block: (CollectedLinter) -> Void
 
-    init(paths: [String], action: String, useSTDIN: Bool, quiet: Bool, useScriptInputFiles: Bool, forceExclude: Bool,
+    init(paths: [String], action: String, useSTDIN: Bool, content: String, quiet: Bool, useScriptInputFiles: Bool, forceExclude: Bool,
          cache: LinterCache?, parallel: Bool, block: @escaping (CollectedLinter) -> Void) {
         self.paths = paths
         self.action = action
         self.useSTDIN = useSTDIN
+        self.content = content
         self.quiet = quiet
         self.useScriptInputFiles = useScriptInputFiles
         self.forceExclude = forceExclude
@@ -54,13 +56,14 @@ struct LintableFilesVisitor {
         self.block = block
     }
 
-    private init(paths: [String], action: String, useSTDIN: Bool, quiet: Bool, useScriptInputFiles: Bool,
+    private init(paths: [String], action: String, useSTDIN: Bool, content: String, quiet: Bool, useScriptInputFiles: Bool,
                  forceExclude: Bool, cache: LinterCache?, compilerInvocations: CompilerInvocations?,
                  block: @escaping (CollectedLinter) -> Void) {
         self.paths = paths
         self.action = action
         self.useSTDIN = useSTDIN
         self.quiet = quiet
+        self.content = content
         self.useScriptInputFiles = useScriptInputFiles
         self.forceExclude = forceExclude
         self.cache = cache
@@ -88,7 +91,7 @@ struct LintableFilesVisitor {
         }
 
         let visitor = LintableFilesVisitor(paths: options.paths, action: options.verb.bridge().capitalized,
-                                           useSTDIN: options.useSTDIN, quiet: options.quiet,
+                                           useSTDIN: options.useSTDIN, content: options.content, quiet: options.quiet,
                                            useScriptInputFiles: options.useScriptInputFiles,
                                            forceExclude: options.forceExclude, cache: cache,
                                            compilerInvocations: compilerInvocations, block: block)
