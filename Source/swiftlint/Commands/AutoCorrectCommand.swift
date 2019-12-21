@@ -1,13 +1,12 @@
 import Commandant
-import SwiftLintFramework
 
-struct AutoCorrectCommand: CommandProtocol {
-    let verb = "autocorrect"
-    let function = "Automatically correct warnings and errors"
+public struct AutoCorrectCommand: CommandProtocol {
+    public let verb = "autocorrect"
+    public let function = "Automatically correct warnings and errors"
 
-    var correctedContentHandler: ((_: String) -> Void)?
+    public var correctedContentHandler: ((_: String) -> Void)?
 
-    func run(_ options: AutoCorrectOptions) -> Result<(), CommandantError<()>> {
+    public func run(_ options: AutoCorrectOptions) -> Result<(), CommandantError<()>> {
         let configuration = Configuration(options: options)
         let storage = RuleStorage()
         let visitor = options.visitor(with: configuration, storage: storage)
@@ -24,9 +23,11 @@ struct AutoCorrectCommand: CommandProtocol {
             return .success(())
         }
     }
+
+    public init() {}
 }
 
-struct AutoCorrectOptions: OptionsProtocol {
+public struct AutoCorrectOptions: OptionsProtocol {
     let paths: [String]
     let content: String
     var correctedContent: String?
@@ -52,7 +53,7 @@ struct AutoCorrectOptions: OptionsProtocol {
             }}}}}}}}}
     }
 
-    static func evaluate(_ mode: CommandMode) -> Result<AutoCorrectOptions, CommandantError<CommandantError<()>>> {
+    public static func evaluate(_ mode: CommandMode) -> Result<AutoCorrectOptions, CommandantError<CommandantError<()>>> {
         return create
             <*> mode <| pathOption(action: "correct")
             <*> mode <| Option(key: "content", defaultValue: "", usage: "Text to be autocorrected")

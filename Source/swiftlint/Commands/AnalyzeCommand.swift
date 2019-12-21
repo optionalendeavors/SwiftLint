@@ -1,5 +1,4 @@
 import Commandant
-import SwiftLintFramework
 
 struct AnalyzeCommand: CommandProtocol {
     let verb = "analyze"

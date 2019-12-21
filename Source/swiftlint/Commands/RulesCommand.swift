@@ -6,7 +6,6 @@ import Glibc
 #else
 #error("Unsupported platform")
 #endif
-import SwiftLintFramework
 import SwiftyTextTable
 
 private func print(ruleDescription desc: RuleDescription) {

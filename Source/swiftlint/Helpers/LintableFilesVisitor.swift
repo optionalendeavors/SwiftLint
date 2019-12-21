@@ -1,14 +1,13 @@
 import Commandant
 import Foundation
 import SourceKittenFramework
-import SwiftLintFramework
 
-typealias File = String
+typealias LintableFile = String
 typealias Arguments = [String]
 
 enum CompilerInvocations {
     case buildLog(compilerInvocations: [String])
-    case compilationDatabase(compileCommands: [File: Arguments])
+    case compilationDatabase(compileCommands: [LintableFile: Arguments])
 
     func arguments(forFile path: String?) -> [String] {
         return path.flatMap { path in
@@ -166,7 +165,7 @@ struct LintableFilesVisitor {
         // Convert the compilation database to a dictionary, with source files as keys and compiler arguments as values.
         //
         // Compilation databases are an array of dictionaries. Each dict has "file" and "arguments" keys.
-        return compileDB.reduce(into: [:]) { (commands: inout [File: Arguments], entry: [String: Any]) in
+        return compileDB.reduce(into: [:]) { (commands: inout [LintableFile: Arguments], entry: [String: Any]) in
             if let file = entry["file"] as? String, var arguments = entry["arguments"] as? [String] {
                 // Compilation databases include the compiler, but it's left out when sending to SourceKit.
                 if arguments.first == "swiftc" {

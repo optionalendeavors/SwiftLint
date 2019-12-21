@@ -1,4 +1,3 @@
-import SwiftLintFramework
 
 extension Reporter {
     static func report(violations: [StyleViolation], realtimeCondition: Bool) {
