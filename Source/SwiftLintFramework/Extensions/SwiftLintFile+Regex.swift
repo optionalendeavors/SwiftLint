@@ -227,12 +227,11 @@ extension SwiftLintFile {
         guard let stringData = string.data(using: .utf8) else {
             queuedFatalError("can't encode '\(string)' with UTF8")
         }
-        guard let path = path, let fileHandle = FileHandle(forWritingAtPath: path) else {
-            queuedFatalError("can't write to path '\(String(describing: self.path))'")
+        if let path = path, let fileHandle = FileHandle(forWritingAtPath: path) {
+            _ = fileHandle.seekToEndOfFile()
+            fileHandle.write(stringData)
+            fileHandle.closeFile()
         }
-        _ = fileHandle.seekToEndOfFile()
-        fileHandle.write(stringData)
-        fileHandle.closeFile()
         file.contents += string
     }
 
