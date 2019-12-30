@@ -24,11 +24,13 @@ private func print(ruleDescription desc: RuleDescription) {
     }
 }
 
-struct RulesCommand: CommandProtocol {
-    let verb = "rules"
-    let function = "Display the list of rules and their identifiers"
+public struct RulesCommand: CommandProtocol {
+    public let verb = "rules"
+    public let function = "Display the list of rules and their identifiers"
 
-    func run(_ options: RulesOptions) -> Result<(), CommandantError<()>> {
+    public init() {}
+
+    public func run(_ options: RulesOptions) -> Result<(), CommandantError<()>> {
         if let ruleID = options.ruleID {
             guard let rule = masterRuleList.list[ruleID] else {
                 return .failure(.usageError(description: "No rule with identifier: \(ruleID)"))
@@ -74,7 +76,7 @@ struct RulesCommand: CommandProtocol {
     }
 }
 
-struct RulesOptions: OptionsProtocol {
+public struct RulesOptions: OptionsProtocol {
     fileprivate let ruleID: String?
     let configurationFile: String
     fileprivate let onlyEnabledRules: Bool
@@ -94,7 +96,7 @@ struct RulesOptions: OptionsProtocol {
         }}}}}
     }
 
-    static func evaluate(_ mode: CommandMode) -> Result<RulesOptions, CommandantError<CommandantError<()>>> {
+    public static func evaluate(_ mode: CommandMode) -> Result<RulesOptions, CommandantError<CommandantError<()>>> {
         return create
             <*> mode <| configOption
             <*> mode <| Argument(defaultValue: "",

@@ -1,15 +1,17 @@
 import Commandant
 
-struct LintCommand: CommandProtocol {
-    let verb = "lint"
-    let function = "Print lint warnings and errors (default command)"
+public struct LintCommand: CommandProtocol {
+    public let verb = "lint"
+    public let function = "Print lint warnings and errors (default command)"
 
-    func run(_ options: LintOptions) -> Result<(), CommandantError<()>> {
+    public func run(_ options: LintOptions) -> Result<(), CommandantError<()>> {
         return LintOrAnalyzeCommand.run(LintOrAnalyzeOptions(options))
     }
+
+    public init() {}
 }
 
-struct LintOptions: OptionsProtocol {
+public struct LintOptions: OptionsProtocol {
     let paths: [String]
     let useSTDIN: Bool
     let content: String
@@ -39,7 +41,7 @@ struct LintOptions: OptionsProtocol {
             }}}}}}}}}}}}}}
     }
 
-    static func evaluate(_ mode: CommandMode) -> Result<LintOptions, CommandantError<CommandantError<()>>> {
+    public static func evaluate(_ mode: CommandMode) -> Result<LintOptions, CommandantError<CommandantError<()>>> {
         return create
             <*> mode <| pathOption(action: "lint")
             <*> mode <| Option(key: "use-stdin", defaultValue: false,

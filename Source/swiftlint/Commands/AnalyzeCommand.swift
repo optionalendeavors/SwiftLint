@@ -1,10 +1,10 @@
 import Commandant
 
-struct AnalyzeCommand: CommandProtocol {
-    let verb = "analyze"
-    let function = "[Experimental] Run analysis rules"
+public struct AnalyzeCommand: CommandProtocol {
+    public let verb = "analyze"
+    public let function = "[Experimental] Run analysis rules"
 
-    func run(_ options: AnalyzeOptions) -> Result<(), CommandantError<()>> {
+    public func run(_ options: AnalyzeOptions) -> Result<(), CommandantError<()>> {
         let options = LintOrAnalyzeOptions(options)
         if options.autocorrect {
             return autocorrect(options)
@@ -12,6 +12,8 @@ struct AnalyzeCommand: CommandProtocol {
             return LintOrAnalyzeCommand.run(options)
         }
     }
+
+    public init() {}
 
     private func autocorrect(_ options: LintOrAnalyzeOptions) -> Result<(), CommandantError<()>> {
         let storage = RuleStorage()
@@ -34,7 +36,7 @@ struct AnalyzeCommand: CommandProtocol {
     }
 }
 
-struct AnalyzeOptions: OptionsProtocol {
+public struct AnalyzeOptions: OptionsProtocol {
     let paths: [String]
     let configurationFile: String
     let strict: Bool
@@ -63,7 +65,7 @@ struct AnalyzeOptions: OptionsProtocol {
         }}}}}}}}}}}}}
     }
 
-    static func evaluate(_ mode: CommandMode) -> Result<AnalyzeOptions, CommandantError<CommandantError<()>>> {
+    public static func evaluate(_ mode: CommandMode) -> Result<AnalyzeOptions, CommandantError<CommandantError<()>>> {
         return create
             <*> mode <| pathOption(action: "analyze")
             <*> mode <| configOption

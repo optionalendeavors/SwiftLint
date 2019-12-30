@@ -91,6 +91,10 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "help rules"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "rules -c -v "
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
