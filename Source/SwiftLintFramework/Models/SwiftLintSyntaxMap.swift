@@ -1,19 +1,27 @@
-import Foundation
 import SourceKittenFramework
 
+/// Represents a Swift file's syntax information.
 public struct SwiftLintSyntaxMap {
+    /// The raw `SyntaxMap` obtained by SourceKitten.
     public let value: SyntaxMap
+
+    /// The SwiftLint-specific syntax tokens for this syntax map.
     public let tokens: [SwiftLintSyntaxToken]
 
+    /// Creates a `SwiftLintSyntaxMap` from the raw `SyntaxMap` obtained by SourceKitten.
+    ///
+    /// - parameter value: The raw `SyntaxMap` obtained by SourceKitten.
     public init(value: SyntaxMap) {
         self.value = value
         self.tokens = value.tokens.map(SwiftLintSyntaxToken.init)
     }
 
-    /// Returns array of SyntaxTokens intersecting with byte range
+    /// Returns array of syntax tokens intersecting with byte range.
     ///
-    /// - Parameter byteRange: byte based NSRange
-    internal func tokens(inByteRange byteRange: NSRange) -> [SwiftLintSyntaxToken] {
+    /// - parameter byteRange: Byte-based NSRange.
+    ///
+    /// - returns: The array of syntax tokens intersecting with byte range.
+    internal func tokens(inByteRange byteRange: ByteRange) -> [SwiftLintSyntaxToken] {
         func intersect(_ token: SwiftLintSyntaxToken) -> Bool {
             return token.range.intersects(byteRange)
         }
@@ -35,7 +43,12 @@ public struct SwiftLintSyntaxMap {
         return Array(tokensAfterFirstIntersection)
     }
 
-    internal func kinds(inByteRange byteRange: NSRange) -> [SyntaxKind] {
+    /// Returns the syntax kinds in the specified byte range.
+    ///
+    /// - parameter byteRange: Byte range.
+    ///
+    /// - returns: The syntax kinds in the specified byte range.
+    internal func kinds(inByteRange byteRange: ByteRange) -> [SyntaxKind] {
         return tokens(inByteRange: byteRange).compactMap { $0.kind }
     }
 }

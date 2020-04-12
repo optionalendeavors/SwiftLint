@@ -14,23 +14,23 @@ public struct StatementPositionRule: CorrectableRule, ConfigurationProviderRule 
                      "declaration.",
         kind: .style,
         nonTriggeringExamples: [
-            "} else if {",
-            "} else {",
-            "} catch {",
-            "\"}else{\"",
-            "struct A { let catchphrase: Int }\nlet a = A(\n catchphrase: 0\n)",
-            "struct A { let `catch`: Int }\nlet a = A(\n `catch`: 0\n)"
+            Example("} else if {"),
+            Example("} else {"),
+            Example("} catch {"),
+            Example("\"}else{\""),
+            Example("struct A { let catchphrase: Int }\nlet a = A(\n catchphrase: 0\n)"),
+            Example("struct A { let `catch`: Int }\nlet a = A(\n `catch`: 0\n)")
         ],
         triggeringExamples: [
-            "↓}else if {",
-            "↓}  else {",
-            "↓}\ncatch {",
-            "↓}\n\t  catch {"
+            Example("↓}else if {"),
+            Example("↓}  else {"),
+            Example("↓}\ncatch {"),
+            Example("↓}\n\t  catch {")
         ],
         corrections: [
-            "↓}\n else {\n": "} else {\n",
-            "↓}\n   else if {\n": "} else if {\n",
-            "↓}\n catch {\n": "} catch {\n"
+            Example("↓}\n else {\n"): Example("} else {\n"),
+            Example("↓}\n   else if {\n"): Example("} else if {\n"),
+            Example("↓}\n catch {\n"): Example("} catch {\n")
         ]
     )
 
@@ -41,26 +41,26 @@ public struct StatementPositionRule: CorrectableRule, ConfigurationProviderRule 
                      "previous declaration.",
         kind: .style,
         nonTriggeringExamples: [
-            "  }\n  else if {",
-            "    }\n    else {",
-            "  }\n  catch {",
-            "  }\n\n  catch {",
-            "\n\n  }\n  catch {",
-            "\"}\nelse{\"",
-            "struct A { let catchphrase: Int }\nlet a = A(\n catchphrase: 0\n)",
-            "struct A { let `catch`: Int }\nlet a = A(\n `catch`: 0\n)"
+            Example("  }\n  else if {"),
+            Example("    }\n    else {"),
+            Example("  }\n  catch {"),
+            Example("  }\n\n  catch {"),
+            Example("\n\n  }\n  catch {"),
+            Example("\"}\nelse{\""),
+            Example("struct A { let catchphrase: Int }\nlet a = A(\n catchphrase: 0\n)"),
+            Example("struct A { let `catch`: Int }\nlet a = A(\n `catch`: 0\n)")
         ],
         triggeringExamples: [
-            "↓  }else if {",
-            "↓}\n  else {",
-            "↓  }\ncatch {",
-            "↓}\n\t  catch {"
+            Example("↓  }else if {"),
+            Example("↓}\n  else {"),
+            Example("↓  }\ncatch {"),
+            Example("↓}\n\t  catch {")
         ],
         corrections: [
-            "  }else if {": "  }\n  else if {",
-            "}\n  else {": "}\nelse {",
-            "  }\ncatch {": "  }\n  catch {",
-            "}\n\t  catch {": "}\ncatch {"
+            Example("  }else if {"): Example("  }\n  else if {"),
+            Example("}\n  else {"): Example("}\nelse {"),
+            Example("  }\ncatch {"): Example("  }\n  catch {"),
+            Example("}\n\t  catch {"): Example("}\ncatch {")
         ]
     )
 
@@ -141,31 +141,32 @@ private extension StatementPositionRule {
 
     static let uncuddledRegex = regex(uncuddledPattern, options: [])
 
-    static func uncuddledMatchValidator(contents: String) -> ((NSTextCheckingResult) -> NSTextCheckingResult?) {
-        return { match in
-            if match.numberOfRanges != 5 {
+    static func uncuddledMatchValidator(contents: StringView) -> ((NSTextCheckingResult)
+        -> NSTextCheckingResult?) {
+            return { match in
+                if match.numberOfRanges != 5 {
+                    return match
+                }
+                if match.range(at: 2).length == 0 {
+                    return match
+                }
+                let range1 = match.range(at: 1)
+                let range2 = match.range(at: 3)
+                let whitespace1 = contents.string.substring(from: range1.location, length: range1.length)
+                let whitespace2 = contents.string.substring(from: range2.location, length: range2.length)
+                if whitespace1 == whitespace2 {
+                    return nil
+                }
                 return match
             }
-            if match.range(at: 2).length == 0 {
-                return match
-            }
-            let range1 = match.range(at: 1)
-            let range2 = match.range(at: 3)
-            let whitespace1 = contents.substring(from: range1.location, length: range1.length)
-            let whitespace2 = contents.substring(from: range2.location, length: range2.length)
-            if whitespace1 == whitespace2 {
-                return nil
-            }
-            return match
-        }
     }
 
-    static func uncuddledMatchFilter(contents: String,
+    static func uncuddledMatchFilter(contents: StringView,
                                      syntaxMap: SwiftLintSyntaxMap) -> ((NSTextCheckingResult) -> Bool) {
         return { match in
             let range = match.range
-            guard let matchRange = contents.bridge().NSRangeToByteRange(start: range.location,
-                                                                        length: range.length) else {
+            guard let matchRange = contents.NSRangeToByteRange(start: range.location,
+                                                               length: range.length) else {
                 return false
             }
             return syntaxMap.kinds(inByteRange: matchRange) == [.keyword]
@@ -173,10 +174,9 @@ private extension StatementPositionRule {
     }
 
     func uncuddledViolationRanges(in file: SwiftLintFile) -> [NSRange] {
-        let contents = file.contents
-        let range = NSRange(location: 0, length: contents.utf16.count)
+        let contents = file.stringView
         let syntaxMap = file.syntaxMap
-        let matches = StatementPositionRule.uncuddledRegex.matches(in: contents, options: [], range: range)
+        let matches = StatementPositionRule.uncuddledRegex.matches(in: file)
         let validator = type(of: self).uncuddledMatchValidator(contents: contents)
         let filterMatches = type(of: self).uncuddledMatchFilter(contents: contents, syntaxMap: syntaxMap)
 
@@ -187,11 +187,10 @@ private extension StatementPositionRule {
 
     func uncuddledCorrect(file: SwiftLintFile) -> [Correction] {
         var contents = file.contents
-        let range = NSRange(location: 0, length: contents.utf16.count)
         let syntaxMap = file.syntaxMap
-        let matches = StatementPositionRule.uncuddledRegex.matches(in: contents, options: [], range: range)
-        let validator = type(of: self).uncuddledMatchValidator(contents: contents)
-        let filterRanges = type(of: self).uncuddledMatchFilter(contents: contents, syntaxMap: syntaxMap)
+        let matches = StatementPositionRule.uncuddledRegex.matches(in: file)
+        let validator = type(of: self).uncuddledMatchValidator(contents: file.stringView)
+        let filterRanges = type(of: self).uncuddledMatchFilter(contents: file.stringView, syntaxMap: syntaxMap)
 
         let validMatches = matches.compactMap(validator).filter(filterRanges)
                   .filter { !file.ruleEnabled(violatingRanges: [$0.range], for: self).isEmpty }

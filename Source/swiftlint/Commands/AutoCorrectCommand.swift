@@ -49,7 +49,11 @@ struct AutoCorrectOptions: OptionsProtocol {
             }
             return self.init(paths: allPaths, content: content, configurationFile: configurationFile, useScriptInputFiles: useScriptInputFiles, quiet: quiet, forceExclude: forceExclude, format: format, cachePath: cachePath, ignoreCache: ignoreCache)
             // swiftlint:enable line_length
+<<<<<<< HEAD
             }}}}}}}}}
+=======
+            }}}}}}}}
+>>>>>>> ef4a37ee1e0d9833daa485ec845f031347fe45e4
     }
 
     static func evaluate(_ mode: CommandMode) -> Result<AutoCorrectOptions, CommandantError<CommandantError<()>>> {
@@ -75,7 +79,8 @@ struct AutoCorrectOptions: OptionsProtocol {
         let cache = ignoreCache ? nil : LinterCache(configuration: configuration)
         return LintableFilesVisitor(paths: paths, action: "Correcting", useSTDIN: false, content: content, quiet: quiet,
                                     useScriptInputFiles: useScriptInputFiles, forceExclude: forceExclude, cache: cache,
-                                    parallel: true) { linter in
+                                    parallel: true,
+                                    allowZeroLintableFiles: configuration.allowZeroLintableFiles) { linter in
             if self.format {
                 switch configuration.indentation {
                 case .tabs:

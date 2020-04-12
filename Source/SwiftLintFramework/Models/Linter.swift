@@ -110,13 +110,21 @@ private extension Rule {
 
 /// Represents a file that can be linted for style violations and corrections after being collected.
 public struct Linter {
+    /// The file to lint with this linter.
     public let file: SwiftLintFile
+    /// Whether or not this linter will be used to collect information from several files.
     public var isCollecting: Bool
     fileprivate let rules: [Rule]
     fileprivate let cache: LinterCache?
     fileprivate let configuration: Configuration
     fileprivate let compilerArguments: [String]
 
+    /// Creates a `Linter` by specifying its properties directly.
+    ///
+    /// - parameter file:              The file to lint with this linter.
+    /// - parameter configuration:     The SwiftLint configuration to apply to this linter.
+    /// - parameter cache:             The persisted cache to use for this linter.
+    /// - parameter compilerArguments: The compiler arguments to use for this linter if it is to execute analyzer rules.
     public init(file: SwiftLintFile, configuration: Configuration = Configuration()!, cache: LinterCache? = nil,
                 compilerArguments: [String] = []) {
         self.file = file
@@ -135,6 +143,10 @@ public struct Linter {
     }
 
     /// Returns a linter capable of checking for violations after running each rule's collection step.
+    ///
+    /// - parameter storage: The storage object where collected info should be saved.
+    ///
+    /// - returns: A linter capable of checking for violations after running each rule's collection step.
     public func collect(into storage: RuleStorage) -> CollectedLinter {
         DispatchQueue.concurrentPerform(iterations: rules.count) { idx in
             rules[idx].collectInfo(for: file, into: storage, compilerArguments: compilerArguments)
@@ -147,6 +159,7 @@ public struct Linter {
 ///
 /// A `CollectedLinter` is only created after a `Linter` has run its collection steps in `Linter.collect(into:)`.
 public struct CollectedLinter {
+    /// The file to lint with this linter.
     public let file: SwiftLintFile
     private let rules: [Rule]
     private let cache: LinterCache?
@@ -161,10 +174,20 @@ public struct CollectedLinter {
         compilerArguments = linter.compilerArguments
     }
 
+    /// Computes or retrieves style violations.
+    ///
+    /// - parameter storage: The storage object containing all collected info.
+    ///
+    /// - returns: All style violations found by this linter.
     public func styleViolations(using storage: RuleStorage) -> [StyleViolation] {
         return getStyleViolations(using: storage).0
     }
 
+    /// Computes or retrieves style violations and the time spent executing each rule.
+    ///
+    /// - parameter storage: The storage object containing all collected info.
+    ///
+    /// - returns: All style violations found by this linter, and the time spent executing each rule.
     public func styleViolationsAndRuleTimes(using storage: RuleStorage)
         -> ([StyleViolation], [(id: String, time: Double)]) {
             return getStyleViolations(using: storage, benchmark: true)
@@ -234,6 +257,11 @@ public struct CollectedLinter {
         return (cachedViolations, ruleTimes)
     }
 
+    /// Applies corrections for all rules to this file, returning performed corrections.
+    ///
+    /// - parameter storage: The storage object containing all collected info.
+    ///
+    /// - returns: All corrections that were applied.
     public func correct(using storage: RuleStorage) -> [Correction] {
         if let violations = cachedStyleViolations()?.0, violations.isEmpty {
             return []
@@ -250,6 +278,10 @@ public struct CollectedLinter {
         return corrections
     }
 
+    /// Formats the file associated with this linter.
+    ///
+    /// - parameter useTabs:     Should the file be formatted using tabs?
+    /// - parameter indentWidth: How many spaces should be used per indentation level.
     public func format(useTabs: Bool, indentWidth: Int) {
         let formattedContents = try? file.file.format(trimmingTrailingWhitespace: true,
                                                       useTabs: useTabs,

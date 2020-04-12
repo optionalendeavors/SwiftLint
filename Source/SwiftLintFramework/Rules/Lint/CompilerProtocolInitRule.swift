@@ -15,12 +15,12 @@ public struct CompilerProtocolInitRule: ASTRule, ConfigurationProviderRule {
         ),
         kind: .lint,
         nonTriggeringExamples: [
-            "let set: Set<Int> = [1, 2]\n",
-            "let set = Set(array)\n"
+            Example("let set: Set<Int> = [1, 2]\n"),
+            Example("let set = Set(array)\n")
         ],
         triggeringExamples: [
-            "let set = ↓Set(arrayLiteral: 1, 2)\n",
-            "let set = ↓Set.init(arrayLiteral: 1, 2)\n"
+            Example("let set = ↓Set(arrayLiteral: 1, 2)\n"),
+            Example("let set = ↓Set.init(arrayLiteral: 1, 2)\n")
         ]
     )
 
@@ -52,10 +52,9 @@ public struct CompilerProtocolInitRule: ASTRule, ConfigurationProviderRule {
             guard compilerProtocol.initCallNames.contains(name),
                 case let arguments = dictionary.enclosedArguments.compactMap({ $0.name }),
                 compilerProtocol.match(arguments: arguments),
-                let offset = dictionary.offset,
-                let length = dictionary.length,
-                let range = file.contents.bridge().byteRangeToNSRange(start: offset, length: length) else {
-                    continue
+                let range = dictionary.byteRange.flatMap(file.stringView.byteRangeToNSRange)
+            else {
+                continue
             }
 
             return [(compilerProtocol, range)]

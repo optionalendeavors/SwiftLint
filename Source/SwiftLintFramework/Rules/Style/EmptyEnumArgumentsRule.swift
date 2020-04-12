@@ -1,21 +1,27 @@
 import Foundation
 import SourceKittenFramework
 
-private func wrapInSwitch(variable: String = "foo", _ str: String) -> String {
-    return  "switch \(variable) {\n" +
-            "    \(str): break\n" +
-            "}"
+private func wrapInSwitch(
+    variable: String = "foo",
+    _ str: String,
+    file: StaticString = #file, line: UInt = #line) -> Example {
+    return Example(
+        """
+        switch \(variable) {
+        \(str): break
+        }
+        """, file: file, line: line)
 }
 
-private func wrapInFunc(_ str: String) -> String {
-    return """
+private func wrapInFunc(_ str: String, file: StaticString = #file, line: UInt = #line) -> Example {
+    return Example("""
     func example(foo: Foo) {
         switch foo {
         case \(str):
             break
         }
     }
-    """
+    """, file: file, line: line)
 }
 
 public struct EmptyEnumArgumentsRule: SubstitutionCorrectableASTRule, ConfigurationProviderRule, AutomaticTestableRule {
@@ -63,7 +69,7 @@ public struct EmptyEnumArgumentsRule: SubstitutionCorrectableASTRule, Configurat
         }
     }
 
-    public func substitution(for violationRange: NSRange, in file: SwiftLintFile) -> (NSRange, String) {
+    public func substitution(for violationRange: NSRange, in file: SwiftLintFile) -> (NSRange, String)? {
         return (violationRange, "")
     }
 
@@ -73,14 +79,14 @@ public struct EmptyEnumArgumentsRule: SubstitutionCorrectableASTRule, Configurat
             return []
         }
 
-        let contents = file.contents.bridge()
+        let contents = file.stringView
 
         let callsRanges = dictionary.substructure.compactMap { dict -> NSRange? in
             guard dict.expressionKind == .call,
-                let offset = dict.offset,
-                let length = dict.length,
-                let range = contents.byteRangeToNSRange(start: offset, length: length) else {
-                    return nil
+                let byteRange = dict.byteRange,
+                let range = contents.byteRangeToNSRange(byteRange)
+            else {
+                return nil
             }
 
             return range
@@ -88,10 +94,10 @@ public struct EmptyEnumArgumentsRule: SubstitutionCorrectableASTRule, Configurat
 
         return dictionary.elements.flatMap { subDictionary -> [NSRange] in
             guard subDictionary.kind == "source.lang.swift.structure.elem.pattern",
-                let offset = subDictionary.offset,
-                let length = subDictionary.length,
-                let caseRange = contents.byteRangeToNSRange(start: offset, length: length) else {
-                    return []
+                let byteRange = subDictionary.byteRange,
+                let caseRange = contents.byteRangeToNSRange(byteRange)
+            else {
+                return []
             }
 
             let emptyArgumentRegex = regex("\\.\\S+\\s*(\\([,\\s_]*\\))")
@@ -107,8 +113,8 @@ public struct EmptyEnumArgumentsRule: SubstitutionCorrectableASTRule, Configurat
                     // avoid matches in "(_, _) where"
                     if let whereByteRange = contents.NSRangeToByteRange(start: whereRange.location,
                                                                         length: whereRange.length),
-                        case let length = whereByteRange.location - offset,
-                        case let byteRange = NSRange(location: offset, length: length),
+                        case let length = whereByteRange.location - byteRange.location,
+                        case let byteRange = ByteRange(location: byteRange.location, length: length),
                         Set(file.syntaxMap.kinds(inByteRange: byteRange)) == [.keyword] {
                         return nil
                     }

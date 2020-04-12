@@ -1,7 +1,7 @@
 import SourceKittenFramework
 
 public struct RawValueForCamelCasedCodableEnumRule: ASTRule, OptInRule, ConfigurationProviderRule,
-AutomaticTestableRule {
+    AutomaticTestableRule {
     public var configuration = SeverityConfiguration(.warning)
 
     public init() {}
@@ -12,74 +12,74 @@ AutomaticTestableRule {
         description: "Camel cased cases of Codable String enums should have raw value.",
         kind: .lint,
         nonTriggeringExamples: [
-            """
+            Example("""
             enum Numbers: Codable {
               case int(Int)
               case short(Int16)
             }
-            """,
-            """
+            """),
+            Example("""
             enum Numbers: Int, Codable {
               case one = 1
               case two = 2
             }
-            """,
-            """
+            """),
+            Example("""
             enum Numbers: Double, Codable {
               case one = 1.1
               case two = 2.2
             }
-            """,
-            """
+            """),
+            Example("""
             enum Numbers: String, Codable {
               case one = "one"
               case two = "two"
             }
-            """,
-            """
+            """),
+            Example("""
             enum Status: String {
                 case ok
                 case notAcceptable
                 case maybeAcceptable = "maybe_acceptable"
             }
-            """,
-            """
+            """),
+            Example("""
             enum Status: Int, Codable {
                 case ok
                 case notAcceptable
                 case maybeAcceptable = -1
             }
-            """
+            """)
         ],
         triggeringExamples: [
-            """
+            Example("""
             enum Status: String, Codable {
                 case ok
                 case ↓notAcceptable
                 case maybeAcceptable = "maybe_acceptable"
             }
-            """,
-            """
+            """),
+            Example("""
             enum Status: String, Decodable {
                case ok
                case ↓notAcceptable
                case maybeAcceptable = "maybe_acceptable"
             }
-            """,
-            """
+            """),
+            Example("""
             enum Status: String, Encodable {
                case ok
                case ↓notAcceptable
                case maybeAcceptable = "maybe_acceptable"
             }
-            """,
-            """
+            """),
+            Example("""
             enum Status: String, Codable {
                 case ok
                 case ↓notAcceptable
                 case maybeAcceptable = "maybe_acceptable"
             }
-            """
+            """)
         ]
     )
 
@@ -104,13 +104,11 @@ AutomaticTestableRule {
         }
     }
 
-    private func violatingOffsetsForEnum(dictionary: SourceKittenDictionary) -> [Int] {
-        let locs = substructureElements(of: dictionary, matching: .enumcase)
+    private func violatingOffsetsForEnum(dictionary: SourceKittenDictionary) -> [ByteCount] {
+        return substructureElements(of: dictionary, matching: .enumcase)
             .compactMap { substructureElements(of: $0, matching: .enumelement) }
             .flatMap(camelCasedEnumCasesMissingRawValue)
             .compactMap { $0.offset }
-
-        return locs
     }
 
     private func substructureElements(of dict: SourceKittenDictionary,

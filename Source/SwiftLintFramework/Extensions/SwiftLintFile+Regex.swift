@@ -58,11 +58,19 @@ extension SwiftLintFile {
         if sourcekitdFailed {
             return []
         }
-        let contents = self.contents.bridge()
-        let range = range ?? NSRange(location: 0, length: contents.length)
+        let contents = stringView
+        let range = range ?? stringView.range
         let pattern = "swiftlint:(enable|disable)(:previous|:this|:next)?\\ [^\\n]+"
-        return match(pattern: pattern, with: [.comment], range: range).compactMap { range in
-            return Command(string: contents, range: range)
+        return match(pattern: pattern, range: range).filter { match in
+            return Set(match.1).isSubset(of: [.comment, .commentURL])
+        }.compactMap { match -> Command? in
+            let range = match.0
+            let actionString = contents.substring(with: range)
+            guard let lineAndCharacter = stringView.lineAndCharacter(forCharacterOffset: NSMaxRange(range))
+                else { return nil }
+            return Command(actionString: actionString,
+                           line: lineAndCharacter.line,
+                           character: lineAndCharacter.character)
         }.flatMap { command in
             return command.expand()
         }
@@ -96,14 +104,12 @@ extension SwiftLintFile {
 
     internal func matchesAndTokens(matching pattern: String,
                                    range: NSRange? = nil) -> [(NSTextCheckingResult, [SwiftLintSyntaxToken])] {
-        let contents = self.contents.bridge()
-        let range = range ?? NSRange(location: 0, length: contents.length)
+        let contents = stringView
+        let range = range ?? contents.range
         let syntax = syntaxMap
-        return regex(pattern).matches(in: self.contents, options: [], range: range).map { match in
-            let matchByteRange = contents.NSRangeToByteRange(start: match.range.location,
-                                                             length: match.range.length) ?? match.range
-            let tokensInRange = syntax.tokens(inByteRange: matchByteRange)
-            return (match, tokensInRange)
+        return regex(pattern).matches(in: contents, options: [], range: range).compactMap { match in
+            let matchByteRange = contents.NSRangeToByteRange(start: match.range.location, length: match.range.length)
+            return matchByteRange.map { (match, syntax.tokens(inByteRange: $0)) }
         }
     }
 
@@ -119,9 +125,9 @@ extension SwiftLintFile {
         return matchesAndTokens(matching: pattern, range: range).map { ($0.0.range, $0.1) }
     }
 
-    internal func match(pattern: String, range: NSRange? = nil) -> [(NSRange, [SyntaxKind])] {
+    internal func match(pattern: String, range: NSRange? = nil, captureGroup: Int = 0) -> [(NSRange, [SyntaxKind])] {
         return matchesAndSyntaxKinds(matching: pattern, range: range).map { textCheckingResult, syntaxKinds in
-            (textCheckingResult.range, syntaxKinds)
+            (textCheckingResult.range(at: captureGroup), syntaxKinds)
         }
     }
 
@@ -135,12 +141,11 @@ extension SwiftLintFile {
         var maybeLine = lineIterator.next()
         var maybeStructure = structureIterator.next()
         while let line = maybeLine, let structure = maybeStructure {
-            if NSLocationInRange(structure.byteRange.location, line.byteRange),
+            if line.byteRange.contains(structure.byteRange.location),
                let swiftDeclarationKind = SwiftDeclarationKind(rawValue: structure.kind) {
                 results[line.index].append(swiftDeclarationKind)
             }
-            let lineEnd = NSMaxRange(line.byteRange)
-            if structure.byteRange.location >= lineEnd {
+            if structure.byteRange.location >= line.byteRange.upperBound {
                 maybeLine = lineIterator.next()
             } else {
                 maybeStructure = structureIterator.next()
@@ -160,12 +165,12 @@ extension SwiftLintFile {
         var maybeToken = tokenGenerator.next()
         while let line = maybeLine, let token = maybeToken {
             let tokenRange = token.range
-            if NSLocationInRange(token.offset, line.byteRange) ||
-                NSLocationInRange(line.byteRange.location, tokenRange) {
+            if line.byteRange.contains(token.offset) ||
+                tokenRange.contains(line.byteRange.location) {
                     results[line.index].append(token)
             }
-            let tokenEnd = NSMaxRange(tokenRange)
-            let lineEnd = NSMaxRange(line.byteRange)
+            let tokenEnd = tokenRange.upperBound
+            let lineEnd = line.byteRange.upperBound
             if tokenEnd < lineEnd {
                 maybeToken = tokenGenerator.next()
             } else if tokenEnd > lineEnd {
@@ -200,8 +205,9 @@ extension SwiftLintFile {
      */
     internal func match(pattern: String,
                         excludingSyntaxKinds syntaxKinds: Set<SyntaxKind>,
-                        range: NSRange? = nil) -> [NSRange] {
-        return match(pattern: pattern, range: range)
+                        range: NSRange? = nil,
+                        captureGroup: Int = 0) -> [NSRange] {
+        return match(pattern: pattern, range: range, captureGroup: captureGroup)
             .filter { syntaxKinds.isDisjoint(with: $0.1) }
             .map { $0.0 }
     }
@@ -217,8 +223,8 @@ extension SwiftLintFile {
         if matches.isEmpty {
             return []
         }
-        let range = range ?? NSRange(location: 0, length: contents.bridge().length)
-        let exclusionRanges = regex(excludingPattern).matches(in: contents, options: [],
+        let range = range ?? stringView.range
+        let exclusionRanges = regex(excludingPattern).matches(in: stringView, options: [],
                                                               range: range).map(exclusionMapping)
         return matches.filter { !$0.intersects(exclusionRanges) }
     }
@@ -233,6 +239,7 @@ extension SwiftLintFile {
         _ = fileHandle.seekToEndOfFile()
         fileHandle.write(stringData)
         fileHandle.closeFile()
+
         file.contents += string
     }
 
@@ -329,7 +336,6 @@ extension SwiftLintFile {
     }
 
     internal func contents(for token: SwiftLintSyntaxToken) -> String? {
-        return contents.bridge().substringWithByteRange(start: token.offset,
-                                                        length: token.length)
+        return stringView.substringWithByteRange(token.range)
     }
 }

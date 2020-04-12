@@ -14,29 +14,29 @@ public struct NoSpaceInMethodCallRule: SubstitutionCorrectableASTRule, Configura
         kind: .style,
         minSwiftVersion: .fourDotTwo,
         nonTriggeringExamples: [
-            "foo()",
-            "object.foo()",
-            "object.foo(1)",
-            "object.foo(value: 1)",
-            "object.foo { print($0 }",
-            "list.sorted { $0.0 < $1.0 }.map { $0.value }",
-            "self.init(rgb: (Int) (colorInt))"
+            Example("foo()"),
+            Example("object.foo()"),
+            Example("object.foo(1)"),
+            Example("object.foo(value: 1)"),
+            Example("object.foo { print($0 }"),
+            Example("list.sorted { $0.0 < $1.0 }.map { $0.value }"),
+            Example("self.init(rgb: (Int) (colorInt))")
         ],
         triggeringExamples: [
-            "foo↓ ()",
-            "object.foo↓ ()",
-            "object.foo↓ (1)",
-            "object.foo↓ (value: 1)",
-            "object.foo↓ () {}",
-            "object.foo↓     ()"
+            Example("foo↓ ()"),
+            Example("object.foo↓ ()"),
+            Example("object.foo↓ (1)"),
+            Example("object.foo↓ (value: 1)"),
+            Example("object.foo↓ () {}"),
+            Example("object.foo↓     ()")
         ],
         corrections: [
-            "foo↓ ()": "foo()",
-            "object.foo↓ ()": "object.foo()",
-            "object.foo↓ (1)": "object.foo(1)",
-            "object.foo↓ (value: 1)": "object.foo(value: 1)",
-            "object.foo↓ () {}": "object.foo() {}",
-            "object.foo↓     ()": "object.foo()"
+            Example("foo↓ ()"): Example("foo()"),
+            Example("object.foo↓ ()"): Example("object.foo()"),
+            Example("object.foo↓ (1)"): Example("object.foo(1)"),
+            Example("object.foo↓ (value: 1)"): Example("object.foo(value: 1)"),
+            Example("object.foo↓ () {}"): Example("object.foo() {}"),
+            Example("object.foo↓     ()"): Example("object.foo()")
         ]
     )
 
@@ -54,7 +54,7 @@ public struct NoSpaceInMethodCallRule: SubstitutionCorrectableASTRule, Configura
 
     // MARK: - SubstitutionCorrectableASTRule
 
-    public func substitution(for violationRange: NSRange, in file: SwiftLintFile) -> (NSRange, String) {
+    public func substitution(for violationRange: NSRange, in file: SwiftLintFile) -> (NSRange, String)? {
         return (violationRange, "")
     }
 
@@ -68,10 +68,11 @@ public struct NoSpaceInMethodCallRule: SubstitutionCorrectableASTRule, Configura
             nameLength > 0,
             case let nameEndPosition = nameOffset + nameLength,
             bodyOffset != nameEndPosition + 1,
-            case let contents = file.contents.bridge(),
-            let range = contents.byteRangeToNSRange(start: nameEndPosition,
-                                                    length: bodyOffset - nameEndPosition - 1) else {
-                return []
+            case let contents = file.stringView,
+            case let byteRange = ByteRange(location: nameEndPosition, length: bodyOffset - nameEndPosition - 1),
+            let range = contents.byteRangeToNSRange(byteRange)
+        else {
+            return []
         }
 
         // Don't trigger if it's a single parameter trailing closure without parens

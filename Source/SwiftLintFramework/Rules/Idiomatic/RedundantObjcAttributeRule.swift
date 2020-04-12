@@ -41,25 +41,25 @@ public struct RedundantObjcAttributeRule: SubstitutionCorrectableRule, Configura
                                  parentStructure: SourceKittenDictionary?) -> [NSRange] {
         let objcAttribute = dictionary.swiftAttributes
                                       .first(where: { $0.attribute == SwiftDeclarationAttributeKind.objc.rawValue })
-        guard let objcOffset = objcAttribute?.offset,
-              let objcLength = objcAttribute?.length,
-              let range = file.contents.bridge().byteRangeToNSRange(start: objcOffset, length: objcLength),
-              !dictionary.isObjcAndIBDesignableDeclaredExtension else {
+        guard let objcByteRange = objcAttribute?.byteRange,
+              let range = file.stringView.byteRangeToNSRange(objcByteRange),
+              !dictionary.isObjcAndIBDesignableDeclaredExtension
+        else {
             return []
         }
 
         let isInObjcVisibleScope = { () -> Bool in
             guard let parentStructure = parentStructure,
                 let kind = dictionary.declarationKind,
-                let parentKind = parentStructure.declarationKind,
-                let acl = dictionary.accessibility else {
+                let parentKind = parentStructure.declarationKind else {
                     return false
             }
 
             let isInObjCExtension = [.extensionClass, .extension].contains(parentKind) &&
                 parentStructure.enclosedSwiftAttributes.contains(.objc)
 
-            let isInObjcMembers = parentStructure.enclosedSwiftAttributes.contains(.objcMembers) && !acl.isPrivate
+            let isPrivate = dictionary.accessibility?.isPrivate ?? false
+            let isInObjcMembers = parentStructure.enclosedSwiftAttributes.contains(.objcMembers) && !isPrivate
 
             guard isInObjCExtension || isInObjcMembers else {
                 return false
@@ -89,7 +89,7 @@ private extension SourceKittenDictionary {
 }
 
 public extension RedundantObjcAttributeRule {
-     func substitution(for violationRange: NSRange, in file: SwiftLintFile) -> (NSRange, String) {
+     func substitution(for violationRange: NSRange, in file: SwiftLintFile) -> (NSRange, String)? {
         var whitespaceAndNewlineOffset = 0
         let nsCharSet = CharacterSet.whitespacesAndNewlines.bridge()
         let nsContent = file.contents.bridge()

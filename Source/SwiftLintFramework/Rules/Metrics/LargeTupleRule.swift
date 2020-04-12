@@ -21,36 +21,36 @@ public struct LargeTupleRule: ASTRule, ConfigurationProviderRule, AutomaticTesta
         description: "Tuples shouldn't have too many members. Create a custom type instead.",
         kind: .metrics,
         nonTriggeringExamples: [
-            "let foo: (Int, Int)\n",
-            "let foo: (start: Int, end: Int)\n",
-            "let foo: (Int, (Int, String))\n",
-            "func foo() -> (Int, Int)\n",
-            "func foo() -> (Int, Int) {}\n",
-            "func foo(bar: String) -> (Int, Int)\n",
-            "func foo(bar: String) -> (Int, Int) {}\n",
-            "func foo() throws -> (Int, Int)\n",
-            "func foo() throws -> (Int, Int) {}\n",
-            "let foo: (Int, Int, Int) -> Void\n",
-            "let foo: (Int, Int, Int) throws -> Void\n",
-            "func foo(bar: (Int, String, Float) -> Void)\n",
-            "func foo(bar: (Int, String, Float) throws -> Void)\n",
-            "var completionHandler: ((_ data: Data?, _ resp: URLResponse?, _ e: NSError?) -> Void)!\n",
-            "func getDictionaryAndInt() -> (Dictionary<Int, String>, Int)?\n",
-            "func getGenericTypeAndInt() -> (Type<Int, String, Float>, Int)?\n"
+            Example("let foo: (Int, Int)\n"),
+            Example("let foo: (start: Int, end: Int)\n"),
+            Example("let foo: (Int, (Int, String))\n"),
+            Example("func foo() -> (Int, Int)\n"),
+            Example("func foo() -> (Int, Int) {}\n"),
+            Example("func foo(bar: String) -> (Int, Int)\n"),
+            Example("func foo(bar: String) -> (Int, Int) {}\n"),
+            Example("func foo() throws -> (Int, Int)\n"),
+            Example("func foo() throws -> (Int, Int) {}\n"),
+            Example("let foo: (Int, Int, Int) -> Void\n"),
+            Example("let foo: (Int, Int, Int) throws -> Void\n"),
+            Example("func foo(bar: (Int, String, Float) -> Void)\n"),
+            Example("func foo(bar: (Int, String, Float) throws -> Void)\n"),
+            Example("var completionHandler: ((_ data: Data?, _ resp: URLResponse?, _ e: NSError?) -> Void)!\n"),
+            Example("func getDictionaryAndInt() -> (Dictionary<Int, String>, Int)?\n"),
+            Example("func getGenericTypeAndInt() -> (Type<Int, String, Float>, Int)?\n")
         ],
         triggeringExamples: [
-            "↓let foo: (Int, Int, Int)\n",
-            "↓let foo: (start: Int, end: Int, value: String)\n",
-            "↓let foo: (Int, (Int, Int, Int))\n",
-            "func foo(↓bar: (Int, Int, Int))\n",
-            "func foo() -> ↓(Int, Int, Int)\n",
-            "func foo() -> ↓(Int, Int, Int) {}\n",
-            "func foo(bar: String) -> ↓(Int, Int, Int)\n",
-            "func foo(bar: String) -> ↓(Int, Int, Int) {}\n",
-            "func foo() throws -> ↓(Int, Int, Int)\n",
-            "func foo() throws -> ↓(Int, Int, Int) {}\n",
-            "func foo() throws -> ↓(Int, ↓(String, String, String), Int) {}\n",
-            "func getDictionaryAndInt() -> (Dictionary<Int, ↓(String, String, String)>, Int)?\n"
+            Example("↓let foo: (Int, Int, Int)\n"),
+            Example("↓let foo: (start: Int, end: Int, value: String)\n"),
+            Example("↓let foo: (Int, (Int, Int, Int))\n"),
+            Example("func foo(↓bar: (Int, Int, Int))\n"),
+            Example("func foo() -> ↓(Int, Int, Int)\n"),
+            Example("func foo() -> ↓(Int, Int, Int) {}\n"),
+            Example("func foo(bar: String) -> ↓(Int, Int, Int)\n"),
+            Example("func foo(bar: String) -> ↓(Int, Int, Int) {}\n"),
+            Example("func foo() throws -> ↓(Int, Int, Int)\n"),
+            Example("func foo() throws -> ↓(Int, Int, Int) {}\n"),
+            Example("func foo() throws -> ↓(Int, ↓(String, String, String), Int) {}\n"),
+            Example("func getDictionaryAndInt() -> (Dictionary<Int, ↓(String, String, String)>, Int)?\n")
         ]
     )
 
@@ -73,7 +73,7 @@ public struct LargeTupleRule: ASTRule, ConfigurationProviderRule, AutomaticTesta
     }
 
     private func violationOffsetsForTypes(in file: SwiftLintFile, dictionary: SourceKittenDictionary,
-                                          kind: SwiftDeclarationKind) -> [(offset: Int, size: Int)] {
+                                          kind: SwiftDeclarationKind) -> [(offset: ByteCount, size: Int)] {
         let kinds = SwiftDeclarationKind.variableKinds.subtracting([.varLocal])
         guard kinds.contains(kind),
             let type = dictionary.typeName,
@@ -86,12 +86,11 @@ public struct LargeTupleRule: ASTRule, ConfigurationProviderRule, AutomaticTesta
     }
 
     private func violationOffsetsForFunctions(in file: SwiftLintFile, dictionary: SourceKittenDictionary,
-                                              kind: SwiftDeclarationKind) -> [(offset: Int, size: Int)] {
-        let contents = file.contents.bridge()
+                                              kind: SwiftDeclarationKind) -> [(offset: ByteCount, size: Int)] {
+        let contents = file.stringView
         guard SwiftDeclarationKind.functionKinds.contains(kind),
             let returnRange = returnRangeForFunction(dictionary: dictionary),
-            let returnSubstring = contents.substringWithByteRange(start: returnRange.location,
-                                                                  length: returnRange.length) else {
+            let returnSubstring = contents.substringWithByteRange(returnRange) else {
                 return []
         }
 
@@ -99,18 +98,18 @@ public struct LargeTupleRule: ASTRule, ConfigurationProviderRule, AutomaticTesta
         return offsets.sorted { $0.offset < $1.offset }
     }
 
-    private func violationOffsets(for text: String, initialOffset: Int = 0) -> [(offset: Int, size: Int)] {
+    private func violationOffsets(for text: String, initialOffset: ByteCount = 0) -> [(offset: ByteCount, size: Int)] {
         guard let ranges = try? parenthesesRanges(in: text) else {
             return []
         }
 
         var text = text.bridge()
-        var offsets = [(offset: Int, size: Int)]()
+        var offsets = [(offset: ByteCount, size: Int)]()
 
         for (range, kind) in ranges {
             let substring = text.substring(with: range)
             if kind != .generic,
-                let byteRange = text.NSRangeToByteRange(start: range.location, length: range.length),
+                let byteRange = StringView(text).NSRangeToByteRange(start: range.location, length: range.length),
                 !containsReturnArrow(in: text.bridge(), range: range) {
                 let size = substring.components(separatedBy: ",").count
                 let offset = byteRange.location + initialOffset
@@ -124,7 +123,7 @@ public struct LargeTupleRule: ASTRule, ConfigurationProviderRule, AutomaticTesta
         return offsets
     }
 
-    private func returnRangeForFunction(dictionary: SourceKittenDictionary) -> NSRange? {
+    private func returnRangeForFunction(dictionary: SourceKittenDictionary) -> ByteRange? {
         guard let nameOffset = dictionary.nameOffset,
             let nameLength = dictionary.nameLength,
             let length = dictionary.length,
@@ -139,7 +138,7 @@ public struct LargeTupleRule: ASTRule, ConfigurationProviderRule, AutomaticTesta
             return nil
         }
 
-        return NSRange(location: start, length: end - start)
+        return ByteRange(location: start, length: end - start)
     }
 
     private func parenthesesRanges(in text: String) throws -> [(NSRange, RangeKind)] {

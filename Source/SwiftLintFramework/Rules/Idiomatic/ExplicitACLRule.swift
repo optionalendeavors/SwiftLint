@@ -14,54 +14,54 @@ public struct ExplicitACLRule: OptInRule, ConfigurationProviderRule, AutomaticTe
         description: "All declarations should specify Access Control Level keywords explicitly.",
         kind: .idiomatic,
         nonTriggeringExamples: [
-            "internal enum A {}\n",
-            "public final class B {}\n",
-            "private struct C {}\n",
-            "internal enum A {\n internal enum B {}\n}",
-            "internal final class Foo {}",
-            """
+            Example("internal enum A {}\n"),
+            Example("public final class B {}\n"),
+            Example("private struct C {}\n"),
+            Example("internal enum A {\n internal enum B {}\n}"),
+            Example("internal final class Foo {}"),
+            Example("""
             internal
             class Foo {
               private let bar = 5
             }
-            """,
-            "internal func a() { let a =  }\n",
-            "private func a() { func innerFunction() { } }",
-            "private enum Foo { enum Bar { } }",
-            "private struct C { let d = 5 }",
-            """
+            """),
+            Example("internal func a() { let a =  }\n"),
+            Example("private func a() { func innerFunction() { } }"),
+            Example("private enum Foo { enum Bar { } }"),
+            Example("private struct C { let d = 5 }"),
+            Example("""
             internal protocol A {
               func b()
             }
-            """,
-            """
+            """),
+            Example("""
             internal protocol A {
               var b: Int
             }
-            """,
-            "internal class A { deinit {} }",
-            "extension A: Equatable {}",
-            "extension A {}"
+            """),
+            Example("internal class A { deinit {} }"),
+            Example("extension A: Equatable {}"),
+            Example("extension A {}")
         ],
         triggeringExamples: [
-            "enum A {}\n",
-            "final class B {}\n",
-            "internal struct C { let d = 5 }\n",
-            "public struct C { let d = 5 }\n",
-            "func a() {}\n",
-            "internal let a = 0\nfunc b() {}\n"
+            Example("enum A {}\n"),
+            Example("final class B {}\n"),
+            Example("internal struct C { let d = 5 }\n"),
+            Example("public struct C { let d = 5 }\n"),
+            Example("func a() {}\n"),
+            Example("internal let a = 0\nfunc b() {}\n")
         ]
     )
 
-    private func findAllExplicitInternalTokens(in file: SwiftLintFile) -> [NSRange] {
-        let contents = file.contents.bridge()
+    private func findAllExplicitInternalTokens(in file: SwiftLintFile) -> [ByteRange] {
+        let contents = file.stringView
         return file.match(pattern: "internal", with: [.attributeBuiltin]).compactMap {
             contents.NSRangeToByteRange(start: $0.location, length: $0.length)
         }
     }
 
     private func offsetOfElements(from elements: [SourceKittenElement], in file: SwiftLintFile,
-                                  thatAreNotInRanges ranges: [NSRange]) -> [Int] {
+                                  thatAreNotInRanges ranges: [ByteRange]) -> [ByteCount] {
         let extensionKinds: Set<SwiftDeclarationKind> = [.extension, .extensionClass, .extensionEnum,
                                                          .extensionProtocol, .extensionStruct]
 
@@ -83,7 +83,7 @@ public struct ExplicitACLRule: OptInRule, ConfigurationProviderRule, AutomaticTe
             // the "internal" token correspond to the type if there're only
             // attributeBuiltin (`final` for example) tokens between them
             let length = typeOffset - previousInternalByteRange.location
-            let range = NSRange(location: previousInternalByteRange.location, length: length)
+            let range = ByteRange(location: previousInternalByteRange.location, length: length)
             let internalDoesntBelongToType = Set(file.syntaxMap.kinds(inByteRange: range)) != [.attributeBuiltin]
 
             return internalDoesntBelongToType ? typeOffset : nil
@@ -109,7 +109,7 @@ public struct ExplicitACLRule: OptInRule, ConfigurationProviderRule, AutomaticTe
         }
     }
 
-    private func lastInternalByteRange(before typeOffset: Int, in ranges: [NSRange]) -> NSRange? {
+    private func lastInternalByteRange(before typeOffset: ByteCount, in ranges: [ByteRange]) -> ByteRange? {
         let firstPartition = ranges.prefix(while: { typeOffset > $0.location })
         return firstPartition.last
     }
