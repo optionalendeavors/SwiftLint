@@ -11,6 +11,7 @@ let package = Package(
     name: "SwiftLint",
     products: [
         .executable(name: "swiftlint", targets: ["swiftlint"]),
+//        .library(name: "SwiftLintFramework", targets: ["SwiftLintFramework"]),
         .library(name: "SwiftLintFramework", targets: ["SwiftLintFramework"])
     ],
     dependencies: [
@@ -28,12 +29,27 @@ let package = Package(
                 "SwiftyTextTable",
             ]
         ),
+//        .target(
+//            name: "SwiftLintFramework",
+//            dependencies: [
+//                "SourceKittenFramework",
+//                "Yams",
+//            ] + (addCryptoSwift ? ["CryptoSwift"] : [])
+//        ),
         .target(
             name: "SwiftLintFramework",
             dependencies: [
+                "Commandant",
+                "SwiftyTextTable",
                 "SourceKittenFramework",
                 "Yams",
-            ] + (addCryptoSwift ? ["CryptoSwift"] : [])
+                ] + (addCryptoSwift ? ["CryptoSwift"] : []),
+            path: "Source/SwiftLintFramework-Commentator",
+            exclude: [
+                "swiftlint/Extensions/Array+SwiftLint.swift",
+                "swiftlint/Commands/VersionCommand.swift",
+                "swiftlint/Commands/GenerateDocsCommand.swift"
+            ]
         ),
         .testTarget(
             name: "SwiftLintFrameworkTests",

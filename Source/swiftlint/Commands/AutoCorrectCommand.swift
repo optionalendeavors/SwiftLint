@@ -50,11 +50,7 @@ public struct AutoCorrectOptions: OptionsProtocol {
             }
             return self.init(paths: allPaths, content: content, configurationFile: configurationFile, useScriptInputFiles: useScriptInputFiles, quiet: quiet, forceExclude: forceExclude, format: format, cachePath: cachePath, ignoreCache: ignoreCache)
             // swiftlint:enable line_length
-<<<<<<< HEAD
             }}}}}}}}}
-=======
-            }}}}}}}}
->>>>>>> ef4a37ee1e0d9833daa485ec845f031347fe45e4
     }
 
     public static func evaluate(_ mode: CommandMode) -> Result<AutoCorrectOptions, CommandantError<CommandantError<()>>> {
