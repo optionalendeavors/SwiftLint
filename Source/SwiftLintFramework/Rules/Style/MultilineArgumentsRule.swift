@@ -21,8 +21,9 @@ public struct MultilineArgumentsRule: ASTRule, OptInRule, ConfigurationProviderR
         guard
             kind == .call,
             case let arguments = dictionary.enclosedArguments,
-            arguments.count > 1 else {
-                return []
+            arguments.count > 1
+        else {
+            return []
         }
 
         let wrappedArguments: [Argument] = arguments
@@ -53,10 +54,11 @@ public struct MultilineArgumentsRule: ASTRule, OptInRule, ConfigurationProviderR
     private func findViolations(in arguments: [Argument],
                                 dictionary: SourceKittenDictionary,
                                 file: SwiftLintFile) -> [Argument] {
-        guard case let contents = file.contents.bridge(),
+        guard case let contents = file.stringView,
             let nameOffset = dictionary.nameOffset,
-            let (nameLine, _) = contents.lineAndCharacter(forByteOffset: nameOffset) else {
-                return []
+            let (nameLine, _) = contents.lineAndCharacter(forByteOffset: nameOffset)
+        else {
+            return []
         }
 
         var visitedLines = Set<Int>()
@@ -114,8 +116,10 @@ public struct MultilineArgumentsRule: ASTRule, OptInRule, ConfigurationProviderR
         guard let offset = dictionary.offset,
             let length = dictionary.length,
             case let start = min(offset, offset + length - 1),
-            let text = file.contents.bridge().substringWithByteRange(start: start, length: length) else {
-                return false
+            case let byteRange = ByteRange(location: start, length: length),
+            let text = file.stringView.substringWithByteRange(byteRange)
+        else {
+            return false
         }
 
         return !text.hasSuffix(")")
@@ -123,40 +127,35 @@ public struct MultilineArgumentsRule: ASTRule, OptInRule, ConfigurationProviderR
 
     private func isClosure(in file: SwiftLintFile) -> (Argument) -> Bool {
         return { argument in
-            let contents = file.contents.bridge()
+            let contents = file.stringView
             let closureMatcher = regex("^\\s*\\{")
-            guard let range = contents.byteRangeToNSRange(start: argument.bodyOffset,
-                                                          length: argument.bodyLength),
-                case let matches = closureMatcher.matches(in: file.contents,
-                                                          options: [],
-                                                          range: range) else {
+            guard let range = contents.byteRangeToNSRange(argument.bodyRange) else {
                 return false
             }
 
+            let matches = closureMatcher.matches(in: file.contents, options: [], range: range)
             return matches.count == 1
         }
     }
 }
 
 private struct Argument {
-    let offset: Int
+    let offset: ByteCount
     let line: Int
     let index: Int
-    let bodyOffset: Int
-    let bodyLength: Int
+    let bodyRange: ByteRange
 
     init?(dictionary: SourceKittenDictionary, file: SwiftLintFile, index: Int) {
         guard let offset = dictionary.offset,
-            let (line, _) = file.contents.bridge().lineAndCharacter(forByteOffset: offset),
-            let bodyOffset = dictionary.bodyOffset,
-            let bodyLength = dictionary.bodyLength else {
+            let (line, _) = file.stringView.lineAndCharacter(forByteOffset: offset),
+            let bodyRange = dictionary.bodyByteRange
+        else {
             return nil
         }
 
         self.offset = offset
         self.line = line
         self.index = index
-        self.bodyOffset = bodyOffset
-        self.bodyLength = bodyLength
+        self.bodyRange = bodyRange
     }
 }

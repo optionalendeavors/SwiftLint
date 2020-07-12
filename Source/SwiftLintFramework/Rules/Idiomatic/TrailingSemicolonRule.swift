@@ -11,20 +11,20 @@ public struct TrailingSemicolonRule: SubstitutionCorrectableRule, ConfigurationP
         name: "Trailing Semicolon",
         description: "Lines should not have trailing semicolons.",
         kind: .idiomatic,
-        nonTriggeringExamples: [ "let a = 0\n" ],
+        nonTriggeringExamples: [ Example("let a = 0\n") ],
         triggeringExamples: [
-            "let a = 0↓;\n",
-            "let a = 0↓;\nlet b = 1\n",
-            "let a = 0↓;;\n",
-            "let a = 0↓;    ;;\n",
-            "let a = 0↓; ; ;\n"
+            Example("let a = 0↓;\n"),
+            Example("let a = 0↓;\nlet b = 1\n"),
+            Example("let a = 0↓;;\n"),
+            Example("let a = 0↓;    ;;\n"),
+            Example("let a = 0↓; ; ;\n")
         ],
         corrections: [
-            "let a = 0↓;\n": "let a = 0\n",
-            "let a = 0↓;\nlet b = 1\n": "let a = 0\nlet b = 1\n",
-            "let a = 0↓;;\n": "let a = 0\n",
-            "let a = 0↓;    ;;\n": "let a = 0\n",
-            "let a = 0↓; ; ;\n": "let a = 0\n"
+            Example("let a = 0↓;\n"): Example("let a = 0\n"),
+            Example("let a = 0↓;\nlet b = 1\n"): Example("let a = 0\nlet b = 1\n"),
+            Example("let a = 0↓;;\n"): Example("let a = 0\n"),
+            Example("let a = 0↓;    ;;\n"): Example("let a = 0\n"),
+            Example("let a = 0↓; ; ;\n"): Example("let a = 0\n")
         ]
     )
 
@@ -41,7 +41,7 @@ public struct TrailingSemicolonRule: SubstitutionCorrectableRule, ConfigurationP
                           excludingSyntaxKinds: SyntaxKind.commentAndStringKinds)
     }
 
-    public func substitution(for violationRange: NSRange, in file: SwiftLintFile) -> (NSRange, String) {
+    public func substitution(for violationRange: NSRange, in file: SwiftLintFile) -> (NSRange, String)? {
         return (violationRange, "")
     }
 }

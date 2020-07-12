@@ -39,67 +39,89 @@ public struct PrivateUnitTestRule: ASTRule, ConfigurationProviderRule, CacheDesc
         description: "Unit tests marked private are silently skipped.",
         kind: .lint,
         nonTriggeringExamples: [
-            "class FooTest: XCTestCase { " +
-                "func test1() {}\n " +
-                "internal func test2() {}\n " +
-                "public func test3() {}\n " +
-            "}",
-            "internal class FooTest: XCTestCase { " +
-                "func test1() {}\n " +
-                "internal func test2() {}\n " +
-                "public func test3() {}\n " +
-            "}",
-            "public class FooTest: XCTestCase { " +
-                "func test1() {}\n " +
-                "internal func test2() {}\n " +
-                "public func test3() {}\n " +
-            "}",
-            "@objc private class FooTest: XCTestCase { " +
-                "@objc private func test1() {}\n " +
-                "internal func test2() {}\n " +
-                "public func test3() {}\n " +
-            "}",
+            Example("""
+            "class FooTest: XCTestCase {
+                func test1() {}
+                internal func test2() {}
+                public func test3() {}
+            }
+            """),
+            Example("""
+            internal class FooTest: XCTestCase {
+                func test1() {}
+                internal func test2() {}
+                public func test3() {}
+            }
+            """),
+            Example("""
+            public class FooTest: XCTestCase {
+                func test1() {}
+                internal func test2() {}
+                public func test3() {}
+            }
+            """),
+            Example("""
+            @objc private class FooTest: XCTestCase {
+                @objc private func test1() {}
+                    internal func test2() {}
+                    public func test3() {}
+            }
+            """),
             // Non-test classes
-            "private class Foo: NSObject { " +
-                "func test1() {}\n " +
-                "internal func test2() {}\n " +
-                "public func test3() {}\n " +
-            "}",
-            "private class Foo { " +
-                "func test1() {}\n " +
-                "internal func test2() {}\n " +
-                "public func test3() {}\n " +
-            "}",
+            Example("""
+            private class Foo: NSObject {
+                func test1() {}
+                internal func test2() {}
+                public func test3() {}
+            }
+            """),
+            Example("""
+            private class Foo {
+                func test1() {}
+                internal func test2() {}
+                public func test3() {}
+            }
+            """),
             // Methods with params
-            "public class FooTest: XCTestCase { " +
-                "func test1(param: Int) {}\n " +
-            "}"
+            Example("""
+            public class FooTest: XCTestCase {
+                func test1(param: Int) {}
+            }
+            """)
         ],
         triggeringExamples: [
-            "private ↓class FooTest: XCTestCase { " +
-                "func test1() {}\n " +
-                "internal func test2() {}\n " +
-                "public func test3() {}\n " +
-                "private func test4() {}\n " +
-            "}",
-            "class FooTest: XCTestCase { " +
-                "func test1() {}\n " +
-                "internal func test2() {}\n " +
-                "public func test3() {}\n " +
-                "private ↓func test4() {}\n " +
-            "}",
-            "internal class FooTest: XCTestCase { " +
-                "func test1() {}\n " +
-                "internal func test2() {}\n " +
-                "public func test3() {}\n " +
-                "private ↓func test4() {}\n " +
-            "}",
-            "public class FooTest: XCTestCase { " +
-                "func test1() {}\n " +
-                "internal func test2() {}\n " +
-                "public func test3() {}\n " +
-                "private ↓func test4() {}\n " +
-            "}"
+            Example("""
+            private ↓class FooTest: XCTestCase {
+                func test1() {}
+                    internal func test2() {}
+                    public func test3() {}
+                    private func test4() {}
+            }
+            """),
+            Example("""
+            class FooTest: XCTestCase {
+                func test1() {}
+                    internal func test2() {}
+                    public func test3() {}
+                    private ↓func test4() {}
+            }
+            """),
+            Example("""
+            internal class FooTest: XCTestCase {
+                func test1() {}
+                    internal func test2() {}
+                    public func test3() {}
+                    private ↓func test4() {}
+            }
+            """),
+            Example("""
+            public class FooTest: XCTestCase {
+                func test1() {}
+                    internal func test2() {}
+                    public func test3() {}
+                    private ↓func test4() {}
+            }
+            """)
         ]
     )
 
@@ -129,7 +151,7 @@ public struct PrivateUnitTestRule: ASTRule, ConfigurationProviderRule, CacheDesc
         guard let regex = configuration.regex, let superclass = dictionary.superclass else {
             return false
         }
-        let range = NSRange(location: 0, length: superclass.bridge().length)
+        let range = superclass.fullNSRange
         return !regex.matches(in: superclass, options: [], range: range).isEmpty
     }
 

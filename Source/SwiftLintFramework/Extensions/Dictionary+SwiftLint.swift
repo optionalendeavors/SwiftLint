@@ -1,16 +1,26 @@
-import Foundation
 import SourceKittenFramework
 
+/// A collection of keys and values as parsed out of SourceKit, with many conveniences for accessing SwiftLint-specific
+/// values.
 public struct SourceKittenDictionary {
+    /// The underlying SourceKitten dictionary.
     public let value: [String: SourceKitRepresentable]
+    /// The cached substructure for this dictionary. Empty if there is no substructure.
     public let substructure: [SourceKittenDictionary]
 
+    /// The kind of Swift expression represented by this dictionary, if it is an expression.
     public let expressionKind: SwiftExpressionKind?
+    /// The kind of Swift declaration represented by this dictionary, if it is a declaration.
     public let declarationKind: SwiftDeclarationKind?
+    /// The kind of Swift statement represented by this dictionary, if it is a statement.
     public let statementKind: StatementKind?
 
+    /// The accessibility level for this dictionary, if it is a declaration.
     public let accessibility: AccessControlLevel?
 
+    /// Creates a SourceKitten dictionary given a `Dictionary<String, SourceKitRepresentable>` input.
+    ///
+    /// - parameter value: The input dictionary/
     init(_ value: [String: SourceKitRepresentable]) {
         self.value = value
 
@@ -27,13 +37,19 @@ public struct SourceKittenDictionary {
     }
 
     /// Body length
-    var bodyLength: Int? {
-        return (value["key.bodylength"] as? Int64).flatMap({ Int($0) })
+    var bodyLength: ByteCount? {
+        return (value["key.bodylength"] as? Int64).map(ByteCount.init)
     }
 
     /// Body offset.
-    var bodyOffset: Int? {
-        return (value["key.bodyoffset"] as? Int64).flatMap({ Int($0) })
+    var bodyOffset: ByteCount? {
+        return (value["key.bodyoffset"] as? Int64).map(ByteCount.init)
+    }
+
+    /// Body byte range.
+    var bodyByteRange: ByteRange? {
+        guard let offset = bodyOffset, let length = bodyLength else { return nil }
+        return ByteRange(location: offset, length: length)
     }
 
     /// Kind.
@@ -42,8 +58,8 @@ public struct SourceKittenDictionary {
     }
 
     /// Length.
-    var length: Int? {
-        return (value["key.length"] as? Int64).flatMap({ Int($0) })
+    var length: ByteCount? {
+        return (value["key.length"] as? Int64).map(ByteCount.init)
     }
     /// Name.
     var name: String? {
@@ -51,24 +67,30 @@ public struct SourceKittenDictionary {
     }
 
     /// Name length.
-    var nameLength: Int? {
-        return (value["key.namelength"] as? Int64).flatMap({ Int($0) })
+    var nameLength: ByteCount? {
+        return (value["key.namelength"] as? Int64).map(ByteCount.init)
     }
 
     /// Name offset.
-    var nameOffset: Int? {
-        return (value["key.nameoffset"] as? Int64).flatMap({ Int($0) })
+    var nameOffset: ByteCount? {
+        return (value["key.nameoffset"] as? Int64).map(ByteCount.init)
+    }
+
+    /// Byte range of name.
+    var nameByteRange: ByteRange? {
+        guard let offset = nameOffset, let length = nameLength else { return nil }
+        return ByteRange(location: offset, length: length)
     }
 
     /// Offset.
-    var offset: Int? {
-        return (value["key.offset"] as? Int64).flatMap({ Int($0) })
+    var offset: ByteCount? {
+        return (value["key.offset"] as? Int64).map(ByteCount.init)
     }
 
     /// Returns byte range starting from `offset` with `length` bytes
-    var byteRange: NSRange? {
+    var byteRange: ByteRange? {
         guard let offset = offset, let length = length else { return nil }
-        return NSRange(location: offset, length: length)
+        return ByteRange(location: offset, length: length)
     }
 
     /// Setter accessibility.
@@ -81,20 +103,43 @@ public struct SourceKittenDictionary {
         return value["key.typename"] as? String
     }
 
-    /// Documentation length.
-    var docLength: Int? {
-        return (value["key.doclength"] as? Int64).flatMap({ Int($0) })
+    /// Documentation offset.
+    var docOffset: ByteCount? {
+        return (value["key.docoffset"] as? Int64).flatMap(ByteCount.init)
     }
 
+    /// Documentation length.
+    var docLength: ByteCount? {
+        return (value["key.doclength"] as? Int64).flatMap(ByteCount.init)
+    }
+
+    /// The attribute for this dictionary, as returned by SourceKit.
     var attribute: String? {
         return value["key.attribute"] as? String
     }
 
+    /// Module name in `@import` expressions.
+    var moduleName: String? {
+        return value["key.modulename"] as? String
+    }
+
+    /// The line number for this declaration.
+    var line: Int64? {
+        return value["key.line"] as? Int64
+    }
+
+    /// The column number for this declaration.
+    var column: Int64? {
+        return value["key.column"] as? Int64
+    }
+
+    /// The `SwiftDeclarationAttributeKind` values associated with this dictionary.
     var enclosedSwiftAttributes: [SwiftDeclarationAttributeKind] {
         return swiftAttributes.compactMap { $0.attribute }
             .compactMap(SwiftDeclarationAttributeKind.init(rawValue:))
     }
 
+    /// The fully preserved SourceKitten dictionaries for all the attributes associated with this dictionary.
     var swiftAttributes: [SourceKittenDictionary] {
         let array = value["key.attributes"] as? [SourceKitRepresentable] ?? []
         let dictionaries = array.compactMap { $0 as? [String: SourceKitRepresentable] }
@@ -163,6 +208,8 @@ extension SourceKittenDictionary {
     /// Traversing using depth first strategy, so deepest substructures will be passed to `traverseBlock` first.
     ///
     /// - parameter traverseBlock: block that will be called for each substructure in the dictionary.
+    ///
+    /// - returns: The list of substructure dictionaries with updated values from the traverse block.
     func traverseDepthFirst<T>(traverseBlock: (SourceKittenDictionary) -> [T]?) -> [T] {
         var result: [T] = []
         traverseDepthFirst(collectingValuesInto: &result, traverseBlock: traverseBlock)
@@ -184,6 +231,8 @@ extension SourceKittenDictionary {
     /// Traversing using depth first strategy, so deepest substructures will be passed to `traverseBlock` first.
     ///
     /// - parameter traverseBlock: block that will be called for each substructure and its parent.
+    ///
+    /// - returns: The list of substructure dictionaries with updated values from the traverse block.
     func traverseWithParentDepthFirst<T>(traverseBlock: (SourceKittenDictionary, SourceKittenDictionary) -> [T]?)
         -> [T] {
         var result: [T] = []
@@ -205,7 +254,10 @@ extension SourceKittenDictionary {
 
     /// Traversing all substuctures of the dictionary hierarchically, calling `traverseBlock` on each node.
     /// Traversing using breadth first strategy, so deepest substructures will be passed to `traverseBlock` last.
+    ///
     /// - parameter traverseBlock: block that will be called for each substructure in the dictionary.
+    ///
+    /// - returns: The list of substructure dictionaries with updated values from the traverse block.
     func traverseBreadthFirst<T>(traverseBlock: (SourceKittenDictionary) -> [T]?) -> [T] {
         var result: [T] = []
         traverseBreadthFirst(collectingValuesInto: &result, traverseBlock: traverseBlock)
@@ -223,9 +275,13 @@ extension SourceKittenDictionary {
     }
 }
 
-extension Dictionary where Key == String {
+extension Dictionary where Key == Example {
     /// Returns a dictionary with SwiftLint violation markers (↓) removed from keys.
+    ///
+    /// - returns: A new `Dictionary`.
     func removingViolationMarkers() -> [Key: Value] {
-        return Dictionary(uniqueKeysWithValues: map { ($0.replacingOccurrences(of: "↓", with: ""), $1) })
+        return Dictionary(uniqueKeysWithValues: map { key, value in
+            return (key.removingViolationMarkers(), value)
+        })
     }
 }

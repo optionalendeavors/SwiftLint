@@ -15,27 +15,27 @@ public struct DeploymentTargetRule: ConfigurationProviderRule {
         kind: .lint,
         minSwiftVersion: .fourDotOne,
         nonTriggeringExamples: [
-            "@available(iOS 12.0, *)\nclass A {}",
-            "@available(watchOS 4.0, *)\nclass A {}",
-            "@available(swift 3.0.2)\nclass A {}",
-            "class A {}",
-            "if #available(iOS 10.0, *) {}",
-            "if #available(iOS 10, *) {}",
-            "guard #available(iOS 12.0, *) else { return }"
+            Example("@available(iOS 12.0, *)\nclass A {}"),
+            Example("@available(watchOS 4.0, *)\nclass A {}"),
+            Example("@available(swift 3.0.2)\nclass A {}"),
+            Example("class A {}"),
+            Example("if #available(iOS 10.0, *) {}"),
+            Example("if #available(iOS 10, *) {}"),
+            Example("guard #available(iOS 12.0, *) else { return }")
         ],
         triggeringExamples: [
-            "↓@available(iOS 6.0, *)\nclass A {}",
-            "↓@available(iOS 7.0, *)\nclass A {}",
-            "↓@available(iOS 6, *)\nclass A {}",
-            "↓@available(iOS 6.0, macOS 10.12, *)\n class A {}",
-            "↓@available(macOS 10.12, iOS 6.0, *)\n class A {}",
-            "↓@available(macOS 10.7, *)\nclass A {}",
-            "↓@available(OSX 10.7, *)\nclass A {}",
-            "↓@available(watchOS 0.9, *)\nclass A {}",
-            "↓@available(tvOS 8, *)\nclass A {}",
-            "if ↓#available(iOS 6.0, *) {}",
-            "if ↓#available(iOS 6, *) {}",
-            "guard ↓#available(iOS 6.0, *) else { return }"
+            Example("↓@available(iOS 6.0, *)\nclass A {}"),
+            Example("↓@available(iOS 7.0, *)\nclass A {}"),
+            Example("↓@available(iOS 6, *)\nclass A {}"),
+            Example("↓@available(iOS 6.0, macOS 10.12, *)\n class A {}"),
+            Example("↓@available(macOS 10.12, iOS 6.0, *)\n class A {}"),
+            Example("↓@available(macOS 10.7, *)\nclass A {}"),
+            Example("↓@available(OSX 10.7, *)\nclass A {}"),
+            Example("↓@available(watchOS 0.9, *)\nclass A {}"),
+            Example("↓@available(tvOS 8, *)\nclass A {}"),
+            Example("if ↓#available(iOS 6.0, *) {}"),
+            Example("if ↓#available(iOS 6, *) {}"),
+            Example("guard ↓#available(iOS 6.0, *) else { return }")
         ]
     )
 
@@ -53,9 +53,9 @@ public struct DeploymentTargetRule: ConfigurationProviderRule {
         return file.rangesAndTokens(matching: pattern).flatMap { range, tokens -> [StyleViolation] in
             guard let availabilityToken = tokens.first,
                 availabilityToken.kind == .keyword,
-                let tokenRange = file.contents.bridge().byteRangeToNSRange(start: availabilityToken.offset,
-                                                                           length: availabilityToken.length) else {
-                    return []
+                let tokenRange = file.stringView.byteRangeToNSRange(availabilityToken.range)
+            else {
+                return []
             }
 
             let rangeToSearch = NSRange(location: tokenRange.upperBound, length: range.length - tokenRange.length)
@@ -81,19 +81,21 @@ public struct DeploymentTargetRule: ConfigurationProviderRule {
             return []
         }
 
-        let contents = file.contents.bridge()
+        let contents = file.stringView
         return attributes.flatMap { dictionary -> [StyleViolation] in
-            guard let offset = dictionary.offset, let length = dictionary.length,
-                let range = contents.byteRangeToNSRange(start: offset, length: length) else {
-                    return []
+            guard let byteRange = dictionary.byteRange,
+                let range = contents.byteRangeToNSRange(byteRange)
+            else {
+                return []
             }
 
-            return validate(range: range, file: file, violationType: "attribute", byteOffsetToReport: offset)
+            return validate(range: range, file: file, violationType: "attribute",
+                            byteOffsetToReport: byteRange.location)
         }.unique
     }
 
     private func validate(range: NSRange, file: SwiftLintFile, violationType: String,
-                          byteOffsetToReport: Int) -> [StyleViolation] {
+                          byteOffsetToReport: ByteCount) -> [StyleViolation] {
         let platformToConfiguredMinVersion = self.platformToConfiguredMinVersion
         let allPlatforms = "(?:" + platformToConfiguredMinVersion.keys.joined(separator: "|") + ")"
         let pattern = "\(allPlatforms) [\\d\\.]+"

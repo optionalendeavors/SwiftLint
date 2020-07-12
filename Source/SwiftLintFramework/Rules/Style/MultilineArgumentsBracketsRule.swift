@@ -12,66 +12,66 @@ public struct MultilineArgumentsBracketsRule: ASTRule, OptInRule, ConfigurationP
         description: "Multiline arguments should have their surrounding brackets in a new line.",
         kind: .style,
         nonTriggeringExamples: [
-            """
+            Example("""
             foo(param1: "Param1", param2: "Param2", param3: "Param3")
-            """,
-            """
+            """),
+            Example("""
             foo(
                 param1: "Param1", param2: "Param2", param3: "Param3"
             )
-            """,
-            """
+            """),
+            Example("""
             func foo(
                 param1: "Param1",
                 param2: "Param2",
                 param3: "Param3"
             )
-            """,
-            """
+            """),
+            Example("""
             foo { param1, param2 in
                 print("hello world")
             }
-            """,
-            """
+            """),
+            Example("""
             foo(
                 bar(
                     x: 5,
                     y: 7
                 )
             )
-            """,
-            """
+            """),
+            Example("""
             AlertViewModel.AlertAction(title: "some title", style: .default) {
                 AlertManager.shared.presentNextDebugAlert()
             }
-            """
+            """)
         ],
         triggeringExamples: [
-            """
+            Example("""
             foo(↓param1: "Param1", param2: "Param2",
                      param3: "Param3"
             )
-            """,
-            """
+            """),
+            Example("""
             foo(
                 param1: "Param1",
                 param2: "Param2",
                 param3: "Param3"↓)
-            """,
-            """
+            """),
+            Example("""
             foo(↓bar(
                 x: 5,
                 y: 7
             )
             )
-            """,
-            """
+            """),
+            Example("""
             foo(
                 bar(
                     x: 5,
                     y: 7
             )↓)
-            """
+            """)
         ]
     )
 
@@ -80,9 +80,8 @@ public struct MultilineArgumentsBracketsRule: ASTRule, OptInRule, ConfigurationP
                          dictionary: SourceKittenDictionary) -> [StyleViolation] {
         guard
             kind == .call,
-            let bodyOffset = dictionary.bodyOffset,
-            let bodyLength = dictionary.bodyLength,
-            let range = file.contents.bridge().byteRangeToNSRange(start: bodyOffset, length: bodyLength)
+            let bodyRange = dictionary.bodyByteRange,
+            let range = file.stringView.byteRangeToNSRange(bodyRange)
         else {
             return []
         }
@@ -96,13 +95,13 @@ public struct MultilineArgumentsBracketsRule: ASTRule, OptInRule, ConfigurationP
         let expectedBodyBeginRegex = regex("\\A(?:[ \\t]*\\n|[^\\n]*(?:in|\\{)\\n)")
         let expectedBodyEndRegex = regex("\\n[ \\t]*\\z")
 
-        var violatingByteOffsets = [Int]()
+        var violatingByteOffsets = [ByteCount]()
         if expectedBodyBeginRegex.firstMatch(in: body, options: [], range: body.fullNSRange) == nil {
-            violatingByteOffsets.append(bodyOffset)
+            violatingByteOffsets.append(bodyRange.location)
         }
 
         if expectedBodyEndRegex.firstMatch(in: body, options: [], range: body.fullNSRange) == nil {
-            violatingByteOffsets.append(bodyOffset + bodyLength)
+            violatingByteOffsets.append(bodyRange.upperBound)
         }
 
         return violatingByteOffsets.map { byteOffset in

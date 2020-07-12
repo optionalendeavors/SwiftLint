@@ -12,7 +12,7 @@ public struct UnusedSetterValueRule: ConfigurationProviderRule, AutomaticTestabl
         description: "Setter value is not used.",
         kind: .lint,
         nonTriggeringExamples: [
-            """
+            Example("""
             var aValue: String {
                 get {
                     return Persister.shared.aValue
@@ -21,8 +21,8 @@ public struct UnusedSetterValueRule: ConfigurationProviderRule, AutomaticTestabl
                     Persister.shared.aValue = newValue
                 }
             }
-            """,
-            """
+            """),
+            Example("""
             var aValue: String {
                 set {
                     Persister.shared.aValue = newValue
@@ -31,8 +31,8 @@ public struct UnusedSetterValueRule: ConfigurationProviderRule, AutomaticTestabl
                     return Persister.shared.aValue
                 }
             }
-            """,
-            """
+            """),
+            Example("""
             var aValue: String {
                 get {
                     return Persister.shared.aValue
@@ -41,10 +41,10 @@ public struct UnusedSetterValueRule: ConfigurationProviderRule, AutomaticTestabl
                     Persister.shared.aValue = value
                 }
             }
-            """
+            """)
         ],
         triggeringExamples: [
-            """
+            Example("""
             var aValue: String {
                 get {
                     return Persister.shared.aValue
@@ -53,8 +53,8 @@ public struct UnusedSetterValueRule: ConfigurationProviderRule, AutomaticTestabl
                     Persister.shared.aValue = aValue
                 }
             }
-            """,
-            """
+            """),
+            Example("""
             var aValue: String {
                 ↓set {
                     Persister.shared.aValue = aValue
@@ -63,8 +63,8 @@ public struct UnusedSetterValueRule: ConfigurationProviderRule, AutomaticTestabl
                     return Persister.shared.aValue
                 }
             }
-            """,
-            """
+            """),
+            Example("""
             var aValue: String {
                 get {
                     return Persister.shared.aValue
@@ -73,8 +73,8 @@ public struct UnusedSetterValueRule: ConfigurationProviderRule, AutomaticTestabl
                     Persister.shared.aValue = aValue
                 }
             }
-            """,
-            """
+            """),
+            Example("""
             var aValue: String {
                 get {
                     let newValue = Persister.shared.aValue
@@ -84,8 +84,8 @@ public struct UnusedSetterValueRule: ConfigurationProviderRule, AutomaticTestabl
                     Persister.shared.aValue = aValue
                 }
             }
-            """,
-            """
+            """),
+            Example("""
             var aValue: String {
                 get {
                     return Persister.shared.aValue
@@ -94,50 +94,50 @@ public struct UnusedSetterValueRule: ConfigurationProviderRule, AutomaticTestabl
                     Persister.shared.aValue = aValue
                 }
             }
-            """
+            """)
         ]
     )
 
     public func validate(file: SwiftLintFile) -> [StyleViolation] {
         let setTokens = file.rangesAndTokens(matching: "\\bset\\b").keywordTokens()
 
-        let violatingLocations = setTokens.compactMap { setToken -> Int? in
+        let violatingLocations = setTokens.compactMap { setToken -> ByteCount? in
             // the last element is the deepest structure
             guard let dict = declarations(forByteOffset: setToken.offset,
                                           structureDictionary: file.structureDictionary).last,
-                let bodyOffset = dict.bodyOffset, let bodyLength = dict.bodyLength,
-                case let contents = file.contents.bridge(),
-                let propertyRange = contents.byteRangeToNSRange(start: bodyOffset, length: bodyLength),
-                let getToken = findGetToken(in: propertyRange, file: file, propertyStructure: dict) else {
-                    return nil
+                let bodyByteRange = dict.bodyByteRange,
+                case let contents = file.stringView,
+                let propertyRange = contents.byteRangeToNSRange(bodyByteRange),
+                let getToken = findGetToken(in: propertyRange, file: file, propertyStructure: dict)
+            else {
+                return nil
             }
 
             let argument = findNamedArgument(after: setToken, file: file)
 
-            let propertyEndOffset = bodyOffset + bodyLength
-            let setterByteRange: NSRange
+            let propertyEndOffset = bodyByteRange.upperBound
+            let setterByteRange: ByteRange
             if setToken.offset > getToken.offset { // get {} set {}
-                let startOfBody: Int
+                let startOfBody: ByteCount
                 if let argumentToken = argument?.token {
                     startOfBody = argumentToken.offset + argumentToken.length
                 } else {
                     startOfBody = setToken.offset
                 }
-                setterByteRange = NSRange(location: startOfBody,
-                                          length: propertyEndOffset - startOfBody)
+                setterByteRange = ByteRange(location: startOfBody,
+                                            length: propertyEndOffset - startOfBody)
             } else { // set {} get {}
-                let startOfBody: Int
+                let startOfBody: ByteCount
                 if let argumentToken = argument?.token {
                     startOfBody = argumentToken.offset + argumentToken.length
                 } else {
                     startOfBody = setToken.offset
                 }
-                setterByteRange = NSRange(location: startOfBody,
-                                          length: getToken.offset - startOfBody)
+                setterByteRange = ByteRange(location: startOfBody,
+                                            length: getToken.offset - startOfBody)
             }
 
-            guard let setterRange = contents.byteRangeToNSRange(start: setterByteRange.location,
-                                                                length: setterByteRange.length) else {
+            guard let setterRange = contents.byteRangeToNSRange(setterByteRange) else {
                 return nil
             }
 
@@ -188,7 +188,7 @@ public struct UnusedSetterValueRule: ConfigurationProviderRule, AutomaticTestabl
         })
     }
 
-    private func declarations(forByteOffset byteOffset: Int,
+    private func declarations(forByteOffset byteOffset: ByteCount,
                               structureDictionary: SourceKittenDictionary) -> [SourceKittenDictionary] {
         var results = [SourceKittenDictionary]()
         let allowedKinds = SwiftDeclarationKind.variableKinds.subtracting([.varParameter])
@@ -197,11 +197,10 @@ public struct UnusedSetterValueRule: ConfigurationProviderRule, AutomaticTestabl
             // Only accepts declarations which contains a body and contains the
             // searched byteOffset
             guard let kind = dictionary.declarationKind,
-                let bodyOffset = dictionary.bodyOffset,
-                let bodyLength = dictionary.bodyLength,
-                case let byteRange = NSRange(location: bodyOffset, length: bodyLength),
-                NSLocationInRange(byteOffset, byteRange) else {
-                    return
+                let byteRange = dictionary.bodyByteRange,
+                byteRange.contains(byteOffset)
+            else {
+                return
             }
 
             if parentKind != .protocol && allowedKinds.contains(kind) {

@@ -17,14 +17,13 @@ extension CallPairRule {
       callNameSuffix                      pattern
      ```
      
-     - parameters:
-        - file: The file to validate
-        - pattern: Regular expression which matches the second part of the expression
-        - patternSyntaxKinds: Syntax kinds matches should have
-        - callNameSuffix: Suffix of the first method call name
-        - severity: Severity of violations
-        - reason: The reason of the generated violations
-        - predicate: Predicate to apply after checking callNameSuffix
+     - parameter file: The file to validate
+     - parameter pattern: Regular expression which matches the second part of the expression
+     - parameter patternSyntaxKinds: Syntax kinds matches should have
+     - parameter callNameSuffix: Suffix of the first method call name
+     - parameter severity: Severity of violations
+     - parameter reason: The reason of the generated violations
+     - parameter predicate: Predicate to apply after checking callNameSuffix
      */
     internal func validate(file: SwiftLintFile,
                            pattern: String,
@@ -34,15 +33,13 @@ extension CallPairRule {
                            reason: String? = nil,
                            predicate: (SourceKittenDictionary) -> Bool = { _ in true }) -> [StyleViolation] {
         let firstRanges = file.match(pattern: pattern, with: patternSyntaxKinds)
-        let contents = file.contents.bridge()
+        let stringView = file.stringView
         let dictionary = file.structureDictionary
 
-        let violatingLocations: [Int] = firstRanges.compactMap { range in
-            guard let bodyByteRange = contents.NSRangeToByteRange(start: range.location,
-                                                                  length: range.length),
+        let violatingLocations: [ByteCount] = firstRanges.compactMap { range in
+            guard let bodyByteRange = stringView.NSRangeToByteRange(start: range.location, length: range.length),
                 case let firstLocation = range.location + range.length - 1,
-                let firstByteRange = contents.NSRangeToByteRange(start: firstLocation,
-                                                                 length: 1) else {
+                let firstByteRange = stringView.NSRangeToByteRange(start: firstLocation, length: 1) else {
                 return nil
             }
 
@@ -66,18 +63,14 @@ extension CallPairRule {
         }
     }
 
-    private func methodCall(forByteOffset byteOffset: Int, excludingOffset: Int,
+    private func methodCall(forByteOffset byteOffset: ByteCount, excludingOffset: ByteCount,
                             dictionary: SourceKittenDictionary,
-                            predicate: (SourceKittenDictionary) -> Bool) -> Int? {
-        if dictionary.expressionKind == .call,
-            let bodyOffset = dictionary.offset,
-            let bodyLength = dictionary.length,
-            let offset = dictionary.offset {
-            let byteRange = NSRange(location: bodyOffset, length: bodyLength)
-
-            if NSLocationInRange(byteOffset, byteRange) &&
-                !NSLocationInRange(excludingOffset, byteRange) && predicate(dictionary) {
-                return offset
+                            predicate: (SourceKittenDictionary) -> Bool) -> ByteCount? {
+        if dictionary.expressionKind == .call, let byteRange = dictionary.byteRange {
+            if byteRange.contains(byteOffset) &&
+                !byteRange.contains(excludingOffset) &&
+                predicate(dictionary) {
+                return dictionary.offset
             }
         }
 

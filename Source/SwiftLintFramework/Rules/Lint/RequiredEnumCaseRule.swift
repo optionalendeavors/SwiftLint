@@ -84,18 +84,18 @@ public struct RequiredEnumCaseRule: ASTRule, OptInRule, ConfigurationProviderRul
 
         /// Determines the location of where the enum declaration starts.
         ///
-        /// - Parameters:
-        ///   - dictionary: Parsed source for the enum.
-        ///   - file: SwiftLintFile that contains the enum.
-        /// - Returns: Location of where the enum declaration starts.
+        /// - parameter dictionary: Parsed source for the enum.
+        /// - parameter file:       `SwiftLintFile` that contains the enum.
+        ///
+        /// - returns: Location of where the enum declaration starts.
         static func location(from dictionary: SourceKittenDictionary, in file: SwiftLintFile) -> Location {
-            return Location(file: file, characterOffset: dictionary.offset ?? 0)
+            return Location(file: file, byteOffset: dictionary.offset ?? 0)
         }
 
         /// Determines the names of cases found in the enum.
         ///
-        /// - Parameter dictionary: Parsed source for the enum.
-        /// - Returns: Names of cases found in the enum.
+        /// - parameter dictionary: Parsed source for the enum.
+        /// - returns: Names of cases found in the enum.
         static func cases(from dictionary: SourceKittenDictionary) -> [String] {
             let caseSubstructures = dictionary.substructure.filter { dict in
                 return dict.declarationKind == .enumcase
@@ -124,38 +124,54 @@ public struct RequiredEnumCaseRule: ASTRule, OptInRule, ConfigurationProviderRul
         description: "Enums conforming to a specified protocol must implement a specific case(s).",
         kind: .lint,
         nonTriggeringExamples: [
-            "enum MyNetworkResponse: String, NetworkResponsable {\n" +
-            "    case success, error, notConnected \n" +
-            "}",
-            "enum MyNetworkResponse: String, NetworkResponsable {\n" +
-            "    case success, error, notConnected(error: Error) \n" +
-            "}",
-            "enum MyNetworkResponse: String, NetworkResponsable {\n" +
-            "    case success\n" +
-            "    case error\n" +
-            "    case notConnected\n" +
-            "}",
-            "enum MyNetworkResponse: String, NetworkResponsable {\n" +
-            "    case success\n" +
-            "    case error\n" +
-            "    case notConnected(error: Error)\n" +
-            "}"
+            Example("""
+            enum MyNetworkResponse: String, NetworkResponsable {
+                case success, error, notConnected
+            }
+            """),
+            Example("""
+            enum MyNetworkResponse: String, NetworkResponsable {
+                case success, error, notConnected(error: Error)
+            }
+            """),
+            Example("""
+            enum MyNetworkResponse: String, NetworkResponsable {
+                case success
+                case error
+                case notConnected
+            }
+            """),
+            Example("""
+            enum MyNetworkResponse: String, NetworkResponsable {
+                case success
+                case error
+                case notConnected(error: Error)
+            }
+            """)
         ],
         triggeringExamples: [
-            "enum MyNetworkResponse: String, NetworkResponsable {\n" +
-            "    case success, error \n" +
-            "}",
-            "enum MyNetworkResponse: String, NetworkResponsable {\n" +
-            "    case success, error \n" +
-            "}",
-            "enum MyNetworkResponse: String, NetworkResponsable {\n" +
-            "    case success\n" +
-            "    case error\n" +
-            "}",
-            "enum MyNetworkResponse: String, NetworkResponsable {\n" +
-            "    case success\n" +
-            "    case error\n" +
-            "}"
+            Example("""
+            enum MyNetworkResponse: String, NetworkResponsable {
+                case success, error
+            }
+            """),
+            Example("""
+            enum MyNetworkResponse: String, NetworkResponsable {
+                case success, error
+            }
+            """),
+            Example("""
+            enum MyNetworkResponse: String, NetworkResponsable {
+                case success
+                case error
+            }
+            """),
+            Example("""
+            enum MyNetworkResponse: String, NetworkResponsable {
+                case success
+                case error
+            }
+            """)
         ]
     )
 
@@ -170,9 +186,8 @@ public struct RequiredEnumCaseRule: ASTRule, OptInRule, ConfigurationProviderRul
 
     /// Iterates over all of the protocols in the configuration and creates violations for missing cases.
     ///
-    /// - Parameters:
-    ///   - parsed: Enum information parsed from the SourceKitRepresentable dictionary.
-    /// - Returns: Violations for missing cases.
+    /// - parameter parsed: Enum information parsed from the SourceKitRepresentable dictionary.
+    /// - returns: Violations for missing cases.
     private func violations(for parsed: Enum) -> [StyleViolation] {
         var violations: [StyleViolation] = []
 
@@ -187,11 +202,11 @@ public struct RequiredEnumCaseRule: ASTRule, OptInRule, ConfigurationProviderRul
 
     /// Creates the violation for a missing case.
     ///
-    /// - Parameters:
-    ///   - parsed: Enum information parsed from the SourceKitRepresentable dictionary.
-    ///   - protocolName: Name of the protocol that is missing the case.
-    ///   - requiredCase: Information about the case and the severity of the violation.
-    /// - Returns: Created violation.
+    /// - parameter parsed:       Enum information parsed from the `SourceKitRepresentable` dictionary.
+    /// - parameter protocolName: Name of the protocol that is missing the case.
+    /// - parameter requiredCase: Information about the case and the severity of the violation.
+    ///
+    /// - returns: Created violation.
     private func create(violationIn parsed: Enum,
                         for protocolName: String,
                         missing requiredCase: RequiredCase) -> StyleViolation {

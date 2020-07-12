@@ -4,7 +4,7 @@ import SourceKittenFramework
 public struct UnusedDeclarationRule: AutomaticTestableRule, ConfigurationProviderRule, AnalyzerRule, CollectingRule {
     public struct FileUSRs {
         var referenced: Set<String>
-        var declared: [(usr: String, nameOffset: Int)]
+        var declared: [(usr: String, nameOffset: ByteCount)]
         var testCaseUSRs: Set<String>
     }
 
@@ -20,11 +20,32 @@ public struct UnusedDeclarationRule: AutomaticTestableRule, ConfigurationProvide
         description: "Declarations should be referenced at least once within all files linted.",
         kind: .lint,
         nonTriggeringExamples: [
-            """
+            Example("""
             let kConstant = 0
             _ = kConstant
-            """,
-            """
+            """),
+            Example("""
+            enum Change<T> {
+              case insert(T)
+              case delete(T)
+            }
+
+            extension Sequence {
+              func deletes<T>() -> [T] where Element == Change<T> {
+                return compactMap { operation in
+                  if case .delete(let value) = operation {
+                    return value
+                  } else {
+                    return nil
+                  }
+                }
+              }
+            }
+
+            let changes = [Change.insert(0), .delete(0)]
+            changes.deletes()
+            """),
+            Example("""
             struct Item {}
             struct ResponseModel: Codable {
                 let items: [Item]
@@ -35,20 +56,20 @@ public struct UnusedDeclarationRule: AutomaticTestableRule, ConfigurationProvide
             }
 
             _ = ResponseModel(items: [Item()]).items
-            """,
-            """
+            """),
+            Example("""
             class ResponseModel {
                 @objc func foo() {
                 }
             }
             _ = ResponseModel()
-            """
+            """)
         ],
         triggeringExamples: [
-            """
+            Example("""
             let ↓kConstant = 0
-            """,
-            """
+            """),
+            Example("""
             struct Item {}
             struct ↓ResponseModel: Codable {
                 let ↓items: [Item]
@@ -57,13 +78,13 @@ public struct UnusedDeclarationRule: AutomaticTestableRule, ConfigurationProvide
                     case items = "ResponseItems"
                 }
             }
-            """,
-            """
+            """),
+            Example("""
             class ↓ResponseModel {
                 func ↓foo() {
                 }
             }
-            """
+            """)
         ],
         requiresFileOnDisk: true
     )
@@ -100,9 +121,9 @@ public struct UnusedDeclarationRule: AutomaticTestableRule, ConfigurationProvide
     }
 
     private func violationOffsets(in file: SwiftLintFile, compilerArguments: [String],
-                                  declaredUSRs: [(usr: String, nameOffset: Int)],
+                                  declaredUSRs: [(usr: String, nameOffset: ByteCount)],
                                   allReferencedUSRs: Set<String>,
-                                  allTestCaseUSRs: Set<String>) -> [Int] {
+                                  allTestCaseUSRs: Set<String>) -> [ByteCount] {
         // Unused declarations are:
         // 1. all declarations
         // 2. minus all references
@@ -139,7 +160,7 @@ private extension SwiftLintFile {
                     return nil
                 }
 
-                let offset = Int64(token.offset)
+                let offset = token.offset
                 let request = Request.cursorInfo(file: path, offset: offset, arguments: compilerArguments)
                 guard var cursorInfo = try? request.sendIfNotDisabled() else {
                     return nil
@@ -148,14 +169,14 @@ private extension SwiftLintFile {
                 if let acl = editorOpen.aclAtOffset(offset) {
                     cursorInfo["key.accessibility"] = acl.rawValue
                 }
-                cursorInfo["swiftlint.offset"] = offset
+                cursorInfo["swiftlint.offset"] = Int64(offset.value)
                 return cursorInfo
             }
             .map(SourceKittenDictionary.init)
     }
 
     static func declaredUSRs(allCursorInfo: [SourceKittenDictionary], includePublicAndOpen: Bool)
-        -> [(usr: String, nameOffset: Int)] {
+        -> [(usr: String, nameOffset: ByteCount)] {
         return allCursorInfo.compactMap { cursorInfo in
             return declaredUSRAndOffset(cursorInfo: cursorInfo, includePublicAndOpen: includePublicAndOpen)
         }
@@ -170,7 +191,7 @@ private extension SwiftLintFile {
     }
 
     private static func declaredUSRAndOffset(cursorInfo: SourceKittenDictionary, includePublicAndOpen: Bool)
-        -> (usr: String, nameOffset: Int)? {
+        -> (usr: String, nameOffset: ByteCount)? {
         if let offset = cursorInfo.swiftlintOffset,
             let usr = cursorInfo.usr,
             let kind = cursorInfo.declarationKind,
@@ -210,7 +231,7 @@ private extension SwiftLintFile {
                 return nil
             }
 
-            return (usr, Int(offset))
+            return (usr, ByteCount(offset))
         }
 
         return nil
@@ -219,7 +240,10 @@ private extension SwiftLintFile {
     private static func referencedUSR(cursorInfo: SourceKittenDictionary) -> String? {
         if let usr = cursorInfo.usr,
             let kind = cursorInfo.kind,
-            kind.contains("source.lang.swift.ref") {
+            kind.starts(with: "source.lang.swift.ref") {
+            if let synthesizedLocation = usr.range(of: "::SYNTHESIZED::")?.lowerBound {
+                return String(usr.prefix(upTo: synthesizedLocation))
+            }
             return usr
         }
 
@@ -252,7 +276,7 @@ private extension SourceKittenDictionary {
         return value["key.annotated_decl"] as? String
     }
 
-    func aclAtOffset(_ offset: Int64) -> AccessControlLevel? {
+    func aclAtOffset(_ offset: ByteCount) -> AccessControlLevel? {
         if let nameOffset = nameOffset,
             nameOffset == offset,
             let acl = accessibility {

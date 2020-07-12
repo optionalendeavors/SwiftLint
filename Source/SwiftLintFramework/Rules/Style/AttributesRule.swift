@@ -58,7 +58,7 @@ public struct AttributesRule: ASTRule, OptInRule, ConfigurationProviderRule {
                 return nil
             }
 
-            let contents = file.contents.bridge()
+            let contents = file.stringView
             let match = contents.substring(with: range)
             let idx = match.lastIndex(of: "import") ?? 0
             let location = idx + range.location
@@ -76,7 +76,7 @@ public struct AttributesRule: ASTRule, OptInRule, ConfigurationProviderRule {
 
         guard !attributes.isEmpty,
             let offset = dictionary.offset,
-            let (line, _) = file.contents.bridge().lineAndCharacter(forByteOffset: offset) else {
+            let (line, _) = file.stringView.lineAndCharacter(forByteOffset: offset) else {
             return []
         }
 
@@ -138,7 +138,7 @@ public struct AttributesRule: ASTRule, OptInRule, ConfigurationProviderRule {
     }
 
     private func createAlwaysOnNewLineAttributes(previousAttributes: [(String, Bool)],
-                                                 attributesTokens: [(String, NSRange)],
+                                                 attributesTokens: [(String, ByteRange)],
                                                  line: Line, file: SwiftLintFile) -> Set<String> {
         let attributesTokensWithParameters: [(String, Bool)] = attributesTokens.map {
             let hasParameter = attributeContainsParameter(attributeRange: $1,
@@ -185,7 +185,6 @@ public struct AttributesRule: ASTRule, OptInRule, ConfigurationProviderRule {
         var currentLine = lineNumber - 1
         var allTokens = [(String, Bool)]()
         var foundEmptyLine = false
-        let contents = file.contents.bridge()
 
         while currentLine >= 0 {
             defer {
@@ -241,17 +240,18 @@ public struct AttributesRule: ASTRule, OptInRule, ConfigurationProviderRule {
         return allTokens
     }
 
-    private func attributeContainsParameter(attributeRange: NSRange,
+    private func attributeContainsParameter(attributeRange: ByteRange,
                                             line: Line, file: SwiftLintFile) -> Bool {
-        let restOfLineOffset = attributeRange.location + attributeRange.length
-        let restOfLineLength = line.byteRange.location + line.byteRange.length - restOfLineOffset
+        let restOfLineOffset = attributeRange.upperBound
+        let restOfLineLength = line.byteRange.upperBound - restOfLineOffset
 
         let regex = AttributesRule.regularExpression
-        let contents = file.contents.bridge()
+        let contents = file.stringView
 
         // check if after the token is a `(` with only spaces allowed between the token and `(`
-        guard let restOfLine = contents.substringWithByteRange(start: restOfLineOffset, length: restOfLineLength),
-            case let range = NSRange(location: 0, length: restOfLine.bridge().length),
+        let restOfLineByteRange = ByteRange(location: restOfLineOffset, length: restOfLineLength)
+        guard let restOfLine = contents.substringWithByteRange(restOfLineByteRange),
+            case let range = restOfLine.fullNSRange,
             regex.firstMatch(in: restOfLine, options: [], range: range) != nil else {
             return false
         }
@@ -259,7 +259,7 @@ public struct AttributesRule: ASTRule, OptInRule, ConfigurationProviderRule {
         return true
     }
 
-    private func attributeName(token: SwiftLintSyntaxToken, file: SwiftLintFile) -> (String, NSRange)? {
+    private func attributeName(token: SwiftLintSyntaxToken, file: SwiftLintFile) -> (String, ByteRange)? {
         guard token.kind == .attributeBuiltin else {
             return nil
         }
@@ -273,6 +273,10 @@ public struct AttributesRule: ASTRule, OptInRule, ConfigurationProviderRule {
     }
 
     private func isAttribute(_ name: String) -> Bool {
+        if name == "@escaping" {
+            return false
+        }
+
         // all attributes *should* start with @
         if name.hasPrefix("@") {
             return true
@@ -289,28 +293,29 @@ public struct AttributesRule: ASTRule, OptInRule, ConfigurationProviderRule {
     private func parseAttributes(dictionary: SourceKittenDictionary) -> [SwiftDeclarationAttributeKind] {
         let attributes = dictionary.enclosedSwiftAttributes
         let blacklist: Set<SwiftDeclarationAttributeKind> = [
-            .mutating,
-            .nonmutating,
-            .lazy,
             .dynamic,
+            .fileprivate,
             .final,
             .infix,
+            .internal,
+            .lazy,
+            .mutating,
+            .nonmutating,
+            .open,
             .optional,
             .override,
             .postfix,
             .prefix,
-            .required,
-            .weak,
             .private,
-            .fileprivate,
-            .internal,
             .public,
-            .open,
-            .setterPrivate,
+            .required,
+            .rethrows,
             .setterFilePrivate,
             .setterInternal,
+            .setterOpen,
+            .setterPrivate,
             .setterPublic,
-            .setterOpen
+            .weak
         ]
         return attributes.filter { !blacklist.contains($0) }
     }

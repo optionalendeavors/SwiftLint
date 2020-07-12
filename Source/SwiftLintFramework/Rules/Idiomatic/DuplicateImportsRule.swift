@@ -22,24 +22,26 @@ public struct DuplicateImportsRule: ConfigurationProviderRule, AutomaticTestable
         triggeringExamples: DuplicateImportsRuleExamples.triggeringExamples
     )
 
-    private func rangesInConditionalCompilation(file: SwiftLintFile) -> [NSRange] {
-        let contents = file.contents.bridge()
+    private func rangesInConditionalCompilation(file: SwiftLintFile) -> [ByteRange] {
+        let contents = file.stringView
 
         let ranges = file.syntaxMap.tokens
             .filter { $0.kind == .buildconfigKeyword }
             .map { $0.range }
             .filter { range in
-                let keyword = contents.substringWithByteRange(start: range.location, length: range.length)
-                return ["#if", "#endif"].contains(keyword)
+                return ["#if", "#endif"].contains(contents.substringWithByteRange(range))
             }
 
+        // Make sure that each #if has corresponding #endif
+        guard ranges.count % 2 == 0 else { return [] }
+
         return stride(from: 0, to: ranges.count, by: 2).reduce(into: []) { result, rangeIndex in
-            result.append(NSUnionRange(ranges[rangeIndex], ranges[rangeIndex + 1]))
+            result.append(ranges[rangeIndex].union(with: ranges[rangeIndex + 1]))
         }
     }
 
     public func validate(file: SwiftLintFile) -> [StyleViolation] {
-        let contents = file.contents.bridge()
+        let contents = file.stringView
 
         let ignoredRanges = self.rangesInConditionalCompilation(file: file)
 
@@ -55,7 +57,7 @@ public struct DuplicateImportsRule: ConfigurationProviderRule, AutomaticTestable
                 return !importRange.intersects(ignoredRanges)
             }
 
-        let lines = contents.lines()
+        let lines = file.lines
 
         let importLines: [Line] = importRanges.compactMap { range in
             guard let line = contents.lineAndCharacter(forByteOffset: range.location)?.line

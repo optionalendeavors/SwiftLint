@@ -66,18 +66,17 @@ public struct ModifierOrderRule: ASTRule, OptInRule, ConfigurationProviderRule, 
                          kind: SwiftDeclarationKind,
                          dictionary: SourceKittenDictionary) -> [Correction] {
         guard let offset = dictionary.offset else { return [] }
-        let originalContents = file.contents.bridge()
+        let originalContents = file.stringView
         let violatingRanges = violatingModifiers(dictionary: dictionary)
             .compactMap { preferred, declared -> (NSRange, NSRange)? in
                 guard
                     let preferredRange = originalContents.byteRangeToNSRange(
-                        start: preferred.offset,
-                        length: preferred.length
+                        preferred.range
                     ).flatMap({ file.ruleEnabled(violatingRange: $0, for: self) }),
                     let declaredRange = originalContents.byteRangeToNSRange(
-                        start: declared.offset,
-                        length: declared.length
-                    ).flatMap({ file.ruleEnabled(violatingRange: $0, for: self) }) else {
+                        declared.range
+                    ).flatMap({ file.ruleEnabled(violatingRange: $0, for: self) })
+                else {
                     return nil
                 }
                 return (preferredRange, declaredRange)
@@ -87,9 +86,10 @@ public struct ModifierOrderRule: ASTRule, OptInRule, ConfigurationProviderRule, 
         if violatingRanges.isEmpty {
             corrections = []
         } else {
-            var correctedContents = originalContents
+            var correctedContents = originalContents.nsString
 
-            violatingRanges.reversed().forEach { preferredModifierRange, declaredModifierRange in
+            violatingRanges.reversed().forEach { arg in
+                let (preferredModifierRange, declaredModifierRange) = arg
                 correctedContents = correctedContents.replacingCharacters(
                     in: declaredModifierRange,
                     with: originalContents.substring(with: preferredModifierRange)
@@ -173,7 +173,7 @@ private extension SourceKittenDictionary {
                         keyword: keyword,
                         group: .typeMethods,
                         offset: offset,
-                        length: keyword.count
+                        length: ByteCount(keyword.lengthOfBytes(using: .utf8))
                     )
                 }
                 return nil
@@ -183,11 +183,12 @@ private extension SourceKittenDictionary {
     private func kindsAndOffsets(in declarationKinds: [SwiftDeclarationKind]) -> SourceKittenDictionary? {
         guard let offset = offset,
             let declarationKind = declarationKind,
-            declarationKinds.contains(declarationKind) else {
-                return nil
+            declarationKinds.contains(declarationKind)
+        else {
+            return nil
         }
 
-        return SourceKittenDictionary(["key.kind": declarationKind.rawValue, "key.offset": Int64(offset)])
+        return SourceKittenDictionary(["key.kind": declarationKind.rawValue, "key.offset": Int64(offset.value)])
     }
 }
 
@@ -200,6 +201,7 @@ private extension String {
 private struct ModifierDescription: Equatable {
     let keyword: String
     let group: SwiftDeclarationAttributeKind.ModifierGroup
-    let offset: Int
-    let length: Int
+    let offset: ByteCount
+    let length: ByteCount
+    var range: ByteRange { return ByteRange(location: offset, length: length) }
 }

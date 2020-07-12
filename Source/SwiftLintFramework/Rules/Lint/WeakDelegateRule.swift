@@ -1,7 +1,8 @@
 import Foundation
 import SourceKittenFramework
 
-public struct WeakDelegateRule: ASTRule, ConfigurationProviderRule, AutomaticTestableRule {
+public struct WeakDelegateRule: ASTRule, SubstitutionCorrectableASTRule, ConfigurationProviderRule,
+    AutomaticTestableRule {
     public var configuration = SeverityConfiguration(.warning)
 
     public init() {}
@@ -12,28 +13,43 @@ public struct WeakDelegateRule: ASTRule, ConfigurationProviderRule, AutomaticTes
         description: "Delegates should be weak to avoid reference cycles.",
         kind: .lint,
         nonTriggeringExamples: [
-            "class Foo {\n  weak var delegate: SomeProtocol?\n}\n",
-            "class Foo {\n  weak var someDelegate: SomeDelegateProtocol?\n}\n",
-            "class Foo {\n  weak var delegateScroll: ScrollDelegate?\n}\n",
+            Example("class Foo {\n  weak var delegate: SomeProtocol?\n}\n"),
+            Example("class Foo {\n  weak var someDelegate: SomeDelegateProtocol?\n}\n"),
+            Example("class Foo {\n  weak var delegateScroll: ScrollDelegate?\n}\n"),
             // We only consider properties to be a delegate if it has "delegate" in its name
-            "class Foo {\n  var scrollHandler: ScrollDelegate?\n}\n",
+            Example("class Foo {\n  var scrollHandler: ScrollDelegate?\n}\n"),
             // Only trigger on instance variables, not local variables
-            "func foo() {\n  var delegate: SomeDelegate\n}\n",
+            Example("func foo() {\n  var delegate: SomeDelegate\n}\n"),
             // Only trigger when variable has the suffix "-delegate" to avoid false positives
-            "class Foo {\n  var delegateNotified: Bool?\n}\n",
+            Example("class Foo {\n  var delegateNotified: Bool?\n}\n"),
             // There's no way to declare a property weak in a protocol
-            "protocol P {\n var delegate: AnyObject? { get set }\n}\n",
-            "class Foo {\n protocol P {\n var delegate: AnyObject? { get set }\n}\n}\n",
-            "class Foo {\n var computedDelegate: ComputedDelegate {\n return bar() \n} \n}"
+            Example("protocol P {\n var delegate: AnyObject? { get set }\n}\n"),
+            Example("class Foo {\n protocol P {\n var delegate: AnyObject? { get set }\n}\n}\n"),
+            Example("class Foo {\n var computedDelegate: ComputedDelegate {\n return bar() \n} \n}")
         ],
         triggeringExamples: [
-            "class Foo {\n  ↓var delegate: SomeProtocol?\n}\n",
-            "class Foo {\n  ↓var scrollDelegate: ScrollDelegate?\n}\n"
+            Example("class Foo {\n  ↓var delegate: SomeProtocol?\n}\n"),
+            Example("class Foo {\n  ↓var scrollDelegate: ScrollDelegate?\n}\n")
+        ],
+        corrections: [
+            Example("class Foo {\n  ↓var delegate: SomeProtocol?\n}\n"):
+                Example("class Foo {\n  weak var delegate: SomeProtocol?\n}\n"),
+            Example("class Foo {\n  ↓var scrollDelegate: ScrollDelegate?\n}\n"):
+                Example("class Foo {\n  weak var scrollDelegate: ScrollDelegate?\n}\n")
         ]
     )
 
     public func validate(file: SwiftLintFile, kind: SwiftDeclarationKind,
                          dictionary: SourceKittenDictionary) -> [StyleViolation] {
+        return violationRanges(in: file, kind: kind, dictionary: dictionary).map {
+            StyleViolation(ruleDescription: type(of: self).description,
+                           severity: configuration.severity,
+                           location: Location(file: file, characterOffset: $0.location))
+        }
+    }
+
+    public func violationRanges(in file: SwiftLintFile, kind: SwiftDeclarationKind,
+                                dictionary: SourceKittenDictionary) -> [NSRange] {
         guard kind == .varInstance else {
             return []
         }
@@ -58,30 +74,27 @@ public struct WeakDelegateRule: ASTRule, ConfigurationProviderRule, AutomaticTes
         let isComputed = (dictionary.bodyLength ?? 0) > 0
         guard !isComputed else { return [] }
 
-        // Violation found!
-        let location: Location
-        if let offset = dictionary.offset {
-            location = Location(file: file, byteOffset: offset)
-        } else {
-            location = Location(file: file.path)
+        guard let offset = dictionary.offset,
+            let range = file.stringView.byteRangeToNSRange(ByteRange(location: offset, length: 3))
+        else {
+            return []
         }
 
-        return [
-            StyleViolation(
-                ruleDescription: type(of: self).description,
-                severity: configuration.severity,
-                location: location
-            )
-        ]
+        return [range]
     }
 
-    private func protocolDeclarations(forByteOffset byteOffset: Int,
+    public func substitution(for violationRange: NSRange, in file: SwiftLintFile) -> (NSRange, String)? {
+        return (violationRange, "weak var")
+    }
+
+    private func protocolDeclarations(forByteOffset byteOffset: ByteCount,
                                       structureDictionary: SourceKittenDictionary) -> [SourceKittenDictionary] {
         return structureDictionary.traverseBreadthFirst { dictionary in
             guard dictionary.declarationKind == .protocol,
                 let byteRange = dictionary.byteRange,
-                NSLocationInRange(byteOffset, byteRange) else {
-                    return nil
+                byteRange.contains(byteOffset)
+            else {
+                return nil
             }
             return [dictionary]
         }
