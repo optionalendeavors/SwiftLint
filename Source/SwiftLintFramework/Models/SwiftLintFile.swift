@@ -3,25 +3,15 @@ import SourceKittenFramework
 
 /// A unit of Swift source code, either on disk or in memory.
 public final class SwiftLintFile {
-    private static var id = 0
-    private static var lock = NSLock()
-
-    private static func nextID () -> Int {
-        lock.lock()
-        defer { lock.unlock() }
-        id += 1
-        return id
-    }
-
-    let file: File
-    let id: Int
+    let file: SourceKittenFramework.File
+    let id: UUID
 
     /// Creates a `SwiftLintFile` with a SourceKitten `File`.
     ///
     /// - parameter file: A file from SourceKitten.
-    public init(file: File) {
+    public init(file: SourceKittenFramework.File) {
         self.file = file
-        self.id = SwiftLintFile.nextID()
+        self.id = UUID()
     }
 
     /// Creates a `SwiftLintFile` by specifying its path on disk.
@@ -29,7 +19,7 @@ public final class SwiftLintFile {
     ///
     /// - parameter path: The path to a file on disk. Relative and absolute paths supported.
     public convenience init?(path: String) {
-        guard let file = File(path: path) else { return nil }
+        guard let file = SourceKittenFramework.File(path: path) else { return nil }
         self.init(file: file)
     }
 
@@ -38,14 +28,14 @@ public final class SwiftLintFile {
     ///
     /// - parameter path: The path to a file on disk. Relative and absolute paths supported.
     public convenience init(pathDeferringReading path: String) {
-        self.init(file: File(pathDeferringReading: path))
+        self.init(file: SourceKittenFramework.File(pathDeferringReading: path))
     }
 
     /// Creates a `SwiftLintFile` that is not backed by a file on disk by specifying its contents.
     ///
     /// - parameter contents: The contents of the file.
     public convenience init(contents: String) {
-        self.init(file: File(contents: contents))
+        self.init(file: SourceKittenFramework.File(contents: contents))
     }
 
     /// The path on disk for this file.

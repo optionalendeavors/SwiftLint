@@ -1,3 +1,5 @@
+import SwiftLintFramework
+
 import Commandant
 #if canImport(Darwin)
 import Darwin

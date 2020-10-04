@@ -1,7 +1,10 @@
+import SwiftLintFramework
+
 import Commandant
 import Dispatch
 import Foundation
 import SourceKittenFramework
+import SwiftLintFramework
 
 private let indexIncrementerQueue = DispatchQueue(label: "io.realm.swiftlint.indexIncrementer")
 
@@ -232,7 +235,7 @@ extension Configuration {
 
     init(options: LintOrAnalyzeOptions) {
         let cachePath = options.cachePath.isEmpty ? nil : options.cachePath
-        self.init(path: options.configurationFile, rootPath: type(of: self).rootPath(from: options.paths),
+        self.init(path: options.configurationFile, rootPath: Self.rootPath(from: options.paths),
                   optional: isConfigOptional(), quiet: options.quiet, enableAllRules: options.enableAllRules,
                   cachePath: cachePath)
     }
@@ -252,7 +255,7 @@ extension Configuration {
 
     init(options: AutoCorrectOptions) {
         let cachePath = options.cachePath.isEmpty ? nil : options.cachePath
-        self.init(path: options.configurationFile, rootPath: type(of: self).rootPath(from: options.paths),
+        self.init(path: options.configurationFile, rootPath: Self.rootPath(from: options.paths),
                   optional: isConfigOptional(), quiet: options.quiet, cachePath: cachePath)
     }
 

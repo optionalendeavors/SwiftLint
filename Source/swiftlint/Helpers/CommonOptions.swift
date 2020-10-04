@@ -1,3 +1,5 @@
+import SwiftLintFramework
+
 import Commandant
 
 func pathOption(action: String) -> Option<String> {

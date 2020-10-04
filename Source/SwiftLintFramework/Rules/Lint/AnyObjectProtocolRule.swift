@@ -29,8 +29,6 @@ public struct AnyObjectProtocolRule: SubstitutionCorrectableASTRule, OptInRule,
                 Example("protocol SomeClassOnlyProtocol: AnyObject {}\n"),
             Example("protocol SomeClassOnlyProtocol: ↓class, SomeInheritedProtocol {}\n"):
                 Example("protocol SomeClassOnlyProtocol: AnyObject, SomeInheritedProtocol {}\n"),
-            Example("protocol SomeClassOnlyProtocol: SomeInheritedProtocol, ↓class {}\n"):
-                Example("protocol SomeClassOnlyProtocol: SomeInheritedProtocol, AnyObject {}\n"),
             Example("@objc protocol SomeClassOnlyProtocol: ↓class, SomeInheritedProtocol {}\n"):
                 Example("@objc protocol SomeClassOnlyProtocol: AnyObject, SomeInheritedProtocol {}\n")
         ]
@@ -42,7 +40,7 @@ public struct AnyObjectProtocolRule: SubstitutionCorrectableASTRule, OptInRule,
                          kind: SwiftDeclarationKind,
                          dictionary: SourceKittenDictionary) -> [StyleViolation] {
         return violationRanges(in: file, kind: kind, dictionary: dictionary).map {
-            StyleViolation(ruleDescription: type(of: self).description,
+            StyleViolation(ruleDescription: Self.description,
                            severity: configuration.severity,
                            location: Location(file: file, characterOffset: $0.location))
         }

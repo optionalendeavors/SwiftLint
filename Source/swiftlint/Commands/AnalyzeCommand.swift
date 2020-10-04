@@ -1,3 +1,5 @@
+import SwiftLintFramework
+
 import Commandant
 
 public struct AnalyzeCommand: CommandProtocol {

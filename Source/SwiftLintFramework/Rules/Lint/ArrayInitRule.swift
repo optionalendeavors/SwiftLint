@@ -77,7 +77,7 @@ public struct ArrayInitRule: ASTRule, ConfigurationProviderRule, OptInRule, Auto
         }
 
         return [
-            StyleViolation(ruleDescription: type(of: self).description,
+            StyleViolation(ruleDescription: Self.description,
                            severity: configuration.severity,
                            location: Location(file: file, byteOffset: offset))
         ]
@@ -206,11 +206,5 @@ public struct ArrayInitRule: ASTRule, ConfigurationProviderRule, OptInRule, Auto
         default:
             return false
         }
-    }
-}
-
-private extension Array where Element == SyntaxKind {
-    static func ~= (array: [SyntaxKind], value: [SyntaxKind]) -> Bool {
-        return array == value
     }
 }

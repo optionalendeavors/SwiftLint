@@ -15,12 +15,209 @@
   width.
   [Optional Endeavors](https://github.com/optionalendeavors)
 * JUnit reporter for GitLab artifact:report:junit with better representation of found issues.  
-  [krin-san](https://github.com/krin-san)
-  [#3177](https://github.com/realm/SwiftLint/pull/3177)
+* None.
+
+#### Bug Fixes
+
+* Fix parsing of Xcode 12 compiler logs for analyzer rules.  
+  [JP Simard](https://github.com/jpsim)
+  [#3365](https://github.com/realm/SwiftLint/issues/3365)
+
+* Fix some SwiftUI unused declaration rule false positives.  
+  [JP Simard](https://github.com/jpsim)
+  [#3365](https://github.com/realm/SwiftLint/issues/3365)
+
+* Fix some false positives in rule `explicit_self`.  
+  [Sven Münnich](https://github.com/svenmuennich)
+
+## 0.40.3: Greased Up Drum Bearings
+
+#### Breaking
+
+* None.
+
+#### Experimental
+
+* None.
+
+#### Enhancements
+
+* Make the `unused_declaration` rule run 3-5 times faster, and
+  enable it to detect more occurrences of unused declarations.  
+  [JP Simard](https://github.com/jpsim)
+
+* Remove unneeded internal locking overhead, leading to increased
+  performance in multithreaded operations.  
+  [JP Simard](https://github.com/jpsim)
+
+* Skip correcting file if the swift parser reports a warning or an
+  error.  
+  [JP Simard](https://github.com/jpsim)
+  [#3343](https://github.com/realm/SwiftLint/issues/3343)
+
+#### Bug Fixes
+
+* Rule `unused_capture_list` should not be triggered by self keyword.  
+  [hank121314](https://github.com/hank121314)
+  [#2367](https://github.com/realm/SwiftLint/issues/3267)
+
+* Rule `multiple_closures_with_trailing_closure` no longer triggers when Swift
+  5.3's 'multiple trailing closures' feature is used.
+  [Jumhyn](https://github.com/jumhyn)
+  [#3295](https://github.com/realm/SwiftLint/issues/3295)
+
+## 0.40.2: Demo Unit
+
+#### Breaking
+
+* None.
+
+#### Experimental
+
+* None.
+
+#### Enhancements
+
+* Improve description for `empty_enum_arguments`.  
+  [Lukas Schmidt](https://github.com/lightsprint09)
+
+* Add support for `excluded_match_kinds` custom rule config parameter.  
+  [Ryan Demo](https://github.com/ryandemo)
 
 #### Bug Fixes
 
 * None.
+
+## 0.40.1: A Baffling Response
+
+#### Breaking
+
+* None.
+
+#### Experimental
+
+* None.
+
+#### Enhancements
+
+* Add support for params files for file paths.  
+  [keith](https://github.com/keith)
+
+#### Bug Fixes
+
+* Fix .swift-version to use Swift 5.1.  
+  [cfiken](https://github.com/cfiken)
+  [#3297](https://github.com/realm/SwiftLint/issues/3297)
+
+* Fix test `testDetectSwiftVersion` for Swift 5.2.5.  
+  [cfiken](https://github.com/cfiken)
+  [#3299](https://github.com/realm/SwiftLint/pull/3299)
+
+## 0.40.0: Washable Mask
+
+#### Breaking
+
+* SwiftLint now requires Swift 5.1 or higher to build.  
+  [JP Simard](https://github.com/jpsim)
+
+* Improve compile commands json file validation. If you previously
+  provided invalid files or arguments, the command will now abort.  
+  [Keith Smiley](https://github.com/keith)
+
+#### Experimental
+
+* None.
+
+#### Enhancements
+
+* JUnit reporter for GitLab artifact:report:junit with better representation of
+  found issues.  
+  [krin-san](https://github.com/krin-san)
+  [#3177](https://github.com/realm/SwiftLint/pull/3177)
+
+* Add opt-in `ibinspectable_in_extension` rule to lint against `@IBInspectable`
+  properties in `extensions`.  
+  [Keith Smiley](https://github.com/keith)
+
+* Add `computed_accessors_order` rule to validate the order of `get` and `set`
+  accessors in computed properties and subscripts.  
+  [Marcelo Fabri](https://github.com/marcelofabri)
+  [#3158](https://github.com/realm/SwiftLint/issues/3158)
+
+* Extend `empty_enum_arguments` rule to support `if case` and `guard case`.  
+  [Zsolt Kovács](https://github.com/lordzsolt)
+  [#3103](https://github.com/realm/SwiftLint/issues/3103)
+
+* Add `prefer_zero_over_explicit_init` opt-in rule to enforce using
+  `.zero` instead of calling constructor with zero arguments
+  (e.g. `CGPoint(x: 0, y: 0)`) when using CoreGraphics types.  
+  [Anton Nazarov](https://github.com/MortyMerr)
+  [#3190](https://github.com/realm/SwiftLint/issues/3190)  
+
+* Add `swiftlint docs` command to easily open online documentation.  
+  [417-72KI](https://github.com/417-72KI)
+
+* Add `unneeded_notification_center_removal` rule to warn against using
+  `NotificationCenter.removeObserver(self)` in `deinit` since it's not required
+  after iOS 9/macOS 10.11.  
+  [Amzd](https://github.com/Amzd)
+  [#2755](https://github.com/realm/SwiftLint/issues/2755)  
+
+#### Bug Fixes
+
+* Fix UnusedImportRule breaking transitive imports.  
+  [keith](https://github.com/keith)
+
+* Fix severity level configuration for `duplicate_imports`.  
+  [Yusuke Goto](https://github.com/yusukegoto)
+
+* Fixes false positives for `multiline_parameters_brackets` and
+  `multiline_arguments_brackets`.  
+  [Noah Gilmore](https://github.com/noahsark769)
+  [#3167](https://github.com/realm/SwiftLint/issues/3167)
+
+* Fix conflict of 'opening_brace' with 'implicit_return' for functions
+  implicitly returning a closure.  
+  [SimplyDanny](https://github.com/SimplyDanny)
+  [#3034](https://github.com/realm/SwiftLint/issues/3034)
+
+* Fix false positive on `switch_case_on_newline` rule with `do/catch`
+  statements when using Swift 5.3.  
+  [Marcelo Fabri](https://github.com/marcelofabri)
+  [#3253](https://github.com/realm/SwiftLint/issues/3253)
+
+* Fix false positive uppercase enum case in
+  `raw_value_for_camel_cased_codable_enum` rule.  
+  [Teameh](https://github.com/teameh)
+
+* Fix false positive in `no_space_in_method_call` rule with multiple trailing
+  closures (Swift 5.3).  
+  [Marcelo Fabri](https://github.com/marcelofabri)
+  [#3259](https://github.com/realm/SwiftLint/issues/3259)
+
+* Fix false negative in `explicit_acl` rule when using `extension` with
+  Swift 5.2+.  
+  [Marcelo Fabri](https://github.com/marcelofabri)
+  [#3186](https://github.com/realm/SwiftLint/issues/3186)
+
+* `closure_parameter_position` now triggers in closures that are not inside a
+  function call and also validates captured variables.  
+  [Marcelo Fabri](https://github.com/marcelofabri)
+  [#3225](https://github.com/realm/SwiftLint/issues/3225)
+
+* Fix some cases where the output would be incomplete when running 
+  SwiftLint on Linux.  
+  [Marcelo Fabri](https://github.com/marcelofabri)
+  [#3214](https://github.com/realm/SwiftLint/issues/3214)
+  
+* `compiler_protocol_init` now triggers on `IndexSet(arrayLiteral:)`.  
+  [Janak Shah](https://github.com/janakshah)
+  [#3284](https://github.com/realm/SwiftLint/pull/3284)
+
+* Fix false positives in `extension_access_modifier` rule when using
+  Swift 5.2.  
+  [Marcelo Fabri](https://github.com/marcelofabri)
+  [#3150](https://github.com/realm/SwiftLint/issues/3150)
 
 ## 0.39.2: Stay Home
 
@@ -157,7 +354,17 @@ This is the last release to support building with Swift 5.0.x.
   [Marcelo Fabri](https://github.com/marcelofabri)
   [#2086](https://github.com/realm/SwiftLint/issues/2086)
 
+* Add case `preview_provider` to the order list of `file_types_order` to fix
+  an issue with false positives for `PreviewProvider` subclasses in SwiftUI.  
+  [Cihat Gündüz](https://github.com/Jeehut)
+  [#2860](https://github.com/realm/SwiftLint/issues/2860)
+
 #### Bug Fixes
+
+* Fix false positive in `attributes` rule with `@autoclosure` parameters when
+  using Swift 5.2.  
+  [Mateusz Matrejek](https://github.com/matrejek)
+  [#3079](https://github.com/realm/SwiftLint/issues/3112)
 
 * Fix `discarded_notification_center_observer` false positives when
   capturing observers into an array.  
@@ -225,7 +432,7 @@ This is the last release to support building with Swift 5.0.x.
   to any declarations.  
   [Marcelo Fabri](https://github.com/marcelofabri)
   [#2989](https://github.com/realm/SwiftLint/issues/2989)
-  
+
 * Add new indentation opt-in rule (`indentation_width`) checking for
   super-basic additive indentation pattern.  
   [Frederick Pietschmann](https://github.com/fredpi)
