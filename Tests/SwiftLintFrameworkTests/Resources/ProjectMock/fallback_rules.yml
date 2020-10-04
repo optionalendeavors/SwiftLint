@@ -1,0 +1,8 @@
+disabled_rules:
+  - force_cast
+included:
+  - "fall back into my arms"
+excluded:
+  - "time to fall back and lose an hour of sleep"
+line_length: 10000000000
+reporter: "json"

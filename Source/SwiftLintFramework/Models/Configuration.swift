@@ -20,6 +20,18 @@ public struct Configuration: Hashable {
     /// The standard file name to look for user-defined configurations.
     public static let fileName = ".swiftlint.yml"
 
+    /// The path to a fallback configuration file in the user's home directory.
+    public static var fallbackFilePath: String = {
+        // Look for a fallback config file in the user's home directory.
+        let fallbackPath: String
+        if #available(macOS 10.12, *) {
+            fallbackPath = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(Configuration.fileName).path
+        } else {
+            fallbackPath = (NSHomeDirectory() as NSString).appendingPathComponent(Configuration.fileName)
+        }
+        return fallbackPath
+    }()
+
     /// The style to use when indenting Swift source code.
     public let indentation: IndentationStyle
     /// Included paths to lint.
@@ -167,6 +179,8 @@ public struct Configuration: Hashable {
     /// Creates a `Configuration` with convenience parameters.
     ///
     /// - parameter path:                   The path on disk to the configuration file.
+    /// - parameter fallbackPath:           The path to a fallback configuration file. Only used if `path` doesn't
+    ///                                     exist and `optional` is `true`.
     /// - parameter rootPath:               The root directory to search for nested configurations.
     /// - parameter optional:               If false, the initializer will trap if the file isn't found.
     /// - parameter quiet:                  If false, a message will be logged to stderr when the configuration file is
@@ -174,14 +188,26 @@ public struct Configuration: Hashable {
     /// - parameter enableAllRules:         Enable all available rules.
     /// - parameter cachePath:              The location of the persisted cache to use whith this configuration.
     /// - parameter customRulesIdentifiers: All custom rule identifiers defined in the configuration.
-    public init(path: String = Configuration.fileName, rootPath: String? = nil,
+    public init(path: String = Configuration.fileName,
+                fallbackPath: String = Configuration.fallbackFilePath,
+                rootPath: String? = nil,
                 optional: Bool = true, quiet: Bool = false, enableAllRules: Bool = false,
                 cachePath: String? = nil, customRulesIdentifiers: [String] = []) {
         let fullPath: String
+        let requestedFullPath: String
         if let rootPath = rootPath, rootPath.isDirectory() {
-            fullPath = path.bridge().absolutePathRepresentation(rootDirectory: rootPath)
+            requestedFullPath = path.bridge().absolutePathRepresentation(rootDirectory: rootPath)
         } else {
-            fullPath = path.bridge().absolutePathRepresentation()
+            requestedFullPath = path.bridge().absolutePathRepresentation()
+        }
+
+        // If the path specified is optional and doesn't exist, then use our fallback instead.
+        if optional
+            && !FileManager.default.fileExists(atPath: requestedFullPath)
+            && FileManager.default.fileExists(atPath: fallbackPath) {
+            fullPath = fallbackPath
+        } else {
+            fullPath = requestedFullPath
         }
 
         if let cachedConfig = Configuration.getCached(atPath: fullPath) {
@@ -191,8 +217,8 @@ public struct Configuration: Hashable {
         }
 
         let fail = { (msg: String) in
-            queuedPrintError("\(fullPath):\(msg)")
-            queuedFatalError("Could not read configuration file at path '\(fullPath)'")
+            queuedPrintError("\(requestedFullPath):\(msg)")
+            queuedFatalError("Could not read configuration file at path '\(requestedFullPath)'")
         }
         let rulesMode: RulesMode = enableAllRules ? .allEnabled : .default(disabled: [], optIn: [])
         if path.isEmpty || !FileManager.default.fileExists(atPath: fullPath) {
@@ -205,7 +231,7 @@ public struct Configuration: Hashable {
             let yamlContents = try String(contentsOfFile: fullPath, encoding: .utf8)
             let dict = try YamlParser.parse(yamlContents)
             if !quiet {
-                queuedPrintError("Loading configuration from '\(path)'")
+                queuedPrintError("Loading configuration from '\(fullPath)'")
             }
             self.init(dict: dict, enableAllRules: enableAllRules,
                       cachePath: cachePath, customRulesIdentifiers: customRulesIdentifiers)!

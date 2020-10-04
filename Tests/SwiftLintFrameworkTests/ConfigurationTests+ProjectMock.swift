@@ -29,6 +29,15 @@ extension ConfigurationTests {
         return projectMockPathLevel0.stringByAppendingPathComponent("custom_rules.yml")
     }
 
+    var projectMockYAML0MissingPath: String {
+        // This path should _not_ exist in the mock resources.
+        return projectMockPathLevel0.stringByAppendingPathComponent("non-existant-file.yml")
+    }
+
+    var projectMockYAML0FallbackPath: String {
+        return projectMockPathLevel0.stringByAppendingPathComponent("fallback_rules.yml")
+    }
+
     var projectMockYAML2: String {
         return projectMockPathLevel2.stringByAppendingPathComponent(Configuration.fileName)
     }

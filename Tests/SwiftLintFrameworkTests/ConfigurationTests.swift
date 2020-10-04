@@ -255,6 +255,17 @@ class ConfigurationTests: XCTestCase {
         XCTAssertEqual(configuration.configuration(for: file), configuration)
     }
 
+    func testConfigurationWithSwiftFileAsRootAndFallbackConfiguration() {
+        XCTAssert(!FileManager.default.fileExists(atPath: projectMockYAML0MissingPath),
+                  "Configuration path exists in mock resources, but it shouldn't: \(projectMockYAML0MissingPath)")
+        let configuration = Configuration(path: projectMockYAML0MissingPath,
+                                          fallbackPath: projectMockYAML0FallbackPath,
+                                          rootPath: projectMockSwift0,
+                                          optional: true, quiet: true)
+        let file = SwiftLintFile(path: projectMockSwift0)!
+        XCTAssertEqual(configuration.configuration(for: file), configuration)
+    }
+
     // MARK: - Testing custom indentation
 
     func testIndentationTabs() {
