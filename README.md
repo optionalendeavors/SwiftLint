@@ -310,8 +310,9 @@ identifiers.
 
 ### Configuration
 
-Configure SwiftLint by adding a `.swiftlint.yml` file from the directory you'll
-run SwiftLint from. The following parameters can be configured:
+SwiftLint looks for a file named `.swiftlint.yml` first in the directory where you run
+the `swiftlint` command, falling back to `~/.swiftlint.yml`. The following parameters
+can be configured:
 
 Rule inclusion:
 
