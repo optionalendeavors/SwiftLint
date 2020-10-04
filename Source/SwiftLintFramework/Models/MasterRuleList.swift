@@ -1,4 +1,4 @@
-// Generated using Sourcery 0.17.0 — https://github.com/krzysztofzablocki/Sourcery
+// Generated using Sourcery 0.18.0 — https://github.com/krzysztofzablocki/Sourcery
 // DO NOT EDIT
 
 /// The rule list containing all available rules built into SwiftLint.
@@ -17,6 +17,7 @@ public let masterRuleList = RuleList(rules: [
     ColonRule.self,
     CommaRule.self,
     CompilerProtocolInitRule.self,
+    ComputedAccessorsOrderRule.self,
     ConditionalReturnsOnNewlineRule.self,
     ContainsOverFilterCountRule.self,
     ContainsOverFilterIsEmptyRule.self,
@@ -68,6 +69,7 @@ public let masterRuleList = RuleList(rules: [
     FunctionDefaultParameterAtEndRule.self,
     FunctionParameterCountRule.self,
     GenericTypeNameRule.self,
+    IBInspectableInExtensionRule.self,
     IdenticalOperandsRule.self,
     IdentifierNameRule.self,
     ImplicitGetterRule.self,
@@ -122,6 +124,7 @@ public let masterRuleList = RuleList(rules: [
     OverrideInExtensionRule.self,
     PatternMatchingKeywordsRule.self,
     PreferSelfTypeOverTypeOfSelfRule.self,
+    PreferZeroOverExplicitInitRule.self,
     PrefixedTopLevelConstantRule.self,
     PrivateActionRule.self,
     PrivateOutletRule.self,
@@ -171,6 +174,7 @@ public let masterRuleList = RuleList(rules: [
     TypeNameRule.self,
     UnavailableFunctionRule.self,
     UnneededBreakInSwitchRule.self,
+    UnneededNotificationCenterRemovalRule.self,
     UnneededParenthesesInClosureArgumentRule.self,
     UnownedVariableCaptureRule.self,
     UntypedErrorInCatchRule.self,
