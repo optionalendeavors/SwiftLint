@@ -1,10 +1,7 @@
-import SwiftLintFramework
-
 import Commandant
 import Dispatch
 import Foundation
 import SourceKittenFramework
-import SwiftLintFramework
 
 private let indexIncrementerQueue = DispatchQueue(label: "io.realm.swiftlint.indexIncrementer")
 

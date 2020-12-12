@@ -1,5 +1,3 @@
-import SwiftLintFramework
-
 import Commandant
 
 public struct AutoCorrectCommand: CommandProtocol {
